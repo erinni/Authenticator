@@ -1,0 +1,22 @@
+{
+  "name": "authenticator",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10.28.0"
+  },
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.0",
+    "prettier-plugin-svelte": "^4.1.0"
+  }
+}

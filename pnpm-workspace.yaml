@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+
+# Sicurezza supply chain
+# Non installare versioni pubblicate da meno di 7 giorni (in minuti).
+minimumReleaseAge: 10080
+# Blocca le dipendenze che perdono la provenance rispetto a versioni precedenti.
+trustPolicy: no-downgrade
+# Eccezioni verificate manualmente (pubblicate senza provenance da maintainer noti).
+trustPolicyExclude:
+  - chokidar@4.0.3
+# Nessuno script di install/postinstall eseguito se non esplicitamente approvato.
+strictDepBuilds: true
+onlyBuiltDependencies: []

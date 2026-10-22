@@ -1,0 +1,7 @@
+# Ogni modifica richiede la review del maintainer.
+*                @erinni
+# Aree critiche per la sicurezza.
+/crates/core/    @erinni
+/deny.toml       @erinni
+/.github/        @erinni
+/apps/web/security-headers.ts @erinni

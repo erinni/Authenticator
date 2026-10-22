@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.svg text
+*.png binary
+Cargo.lock linguist-generated=true -diff
+pnpm-lock.yaml linguist-generated=true -diff

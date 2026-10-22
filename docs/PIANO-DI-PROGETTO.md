@@ -1,6 +1,6 @@
 # Authenticator — Piano di progetto
 
-> Stato: **bozza v0.1** · Data: 2026-10-22
+> Stato: **v0.2** · Ultimo aggiornamento: 2026-10-22
 > Obiettivo: un'app di autenticazione a due fattori (TOTP/HOTP) in stile Google/Microsoft Authenticator,
 > disponibile su **browser (PWA)**, **smartphone (iOS/Android)** e **desktop (Windows/macOS/Linux)**,
 > progettata con un modello **zero-knowledge** e crittografia moderna, inclusa protezione post-quantistica dove ha senso.
@@ -162,17 +162,16 @@ Authenticator/
 │   ├── core/            # OTP, vault, key hierarchy, formato file (no I/O)
 │   ├── import/          # parser Google/Aegis/2FAS/andOTP/…
 │   ├── sync-proto/      # tipi e protocollo condivisi client/server
-│   ├── wasm/            # binding wasm-bindgen per la PWA
-│   └── server/          # server di sincronizzazione (axum)
+│   ├── wasm/            # binding wasm-bindgen per la PWA (fase 2)
+│   └── server/          # server di sincronizzazione (axum, fase 5)
 ├── apps/
-│   ├── ui/              # componenti Svelte condivisi
-│   ├── web/             # PWA (Vite)
-│   └── native/          # Tauri 2 (desktop + iOS + Android) + plugin nativi
+│   ├── web/             # PWA (Vite + Svelte)
+│   └── native/          # Tauri 2 (desktop + iOS + Android) + plugin nativi (fase 3)
 ├── docs/
 │   ├── PIANO-DI-PROGETTO.md
 │   ├── threat-model.md
 │   └── adr/             # Architecture Decision Records
-├── fuzz/                # target cargo-fuzz
+├── fuzz/                # target cargo-fuzz (fase 1)
 ├── .github/workflows/   # CI, release firmate, CodeQL, audit
 ├── SECURITY.md
 └── README.md
@@ -209,20 +208,22 @@ Evoluzioni successive: notifiche push di approvazione, firme ML-DSA, estensione 
 
 ---
 
-## 7. Decisioni aperte (da confermare)
+## 7. Decisioni prese (2026-10-22)
 
-1. **Nome del prodotto** e branding.
-2. **Licenza**: proposta *GPL-3.0* (o AGPL-3.0 per il server) per garantire la trasparenza; alternativa *Apache-2.0/MIT*.
-3. **Sync**: solo self-hosted, servizio gestito da te, o entrambi?
-4. **Account sync**: solo passkey, solo password (OPAQUE), o entrambi (proposta: entrambi)?
-5. **Framework UI**: Svelte 5 (proposto) o React?
-6. **Priorità piattaforme**: si parte dalla PWA (proposto) o da mobile?
-7. Account sviluppatore Apple / Google / Microsoft e certificati di firma del codice.
+1. **Nome**: "Authenticator" come nome provvisorio.
+2. **Licenza**: GPL-3.0-only per client e core; AGPL-3.0-only per il server di sync.
+3. **Sync**: servizio gestito **e** server self-hostable.
+4. **Account sync**: password (OPAQUE) **e** passkey.
+5. **Framework UI**: Svelte 5 + TypeScript.
+6. **Priorità piattaforme**: si parte dalla PWA.
+7. Account sviluppatore Apple / Google / Microsoft e certificati di firma: da predisporre prima della fase 3.
+
+Dettagli in `docs/adr/`.
 
 ---
 
-## 8. Prossimi passi immediati
+## 8. Stato
 
-1. Confermare le decisioni aperte della sezione 7.
-2. Fase 0: scaffolding del monorepo, CI di base, `SECURITY.md`, ADR-0001 (stack) e ADR-0002 (primitive crittografiche).
-3. Fase 1: implementazione di `crates/core` partendo da TOTP/HOTP con i test vector delle RFC.
+- [x] **Fase 0 — Fondamenta**: monorepo Cargo + pnpm, lint rigorosi, CI (Rust, Web, cargo-deny, pnpm audit, CodeQL, dependency review), Dependabot, threat model, ADR 0001–0003, CSP + Trusted Types nella PWA.
+  Da fare manualmente su GitHub: le impostazioni elencate in `CONTRIBUTING.md`.
+- [ ] **Fase 1 — Core crittografico**: prossimo passo, partendo da TOTP/HOTP con i test vector delle RFC.

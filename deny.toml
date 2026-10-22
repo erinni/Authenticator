@@ -1,0 +1,46 @@
+# Configurazione cargo-deny: advisories (RustSec), licenze, crate vietati, sorgenti.
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []
+
+[licenses]
+version = 2
+confidence-threshold = 0.93
+unused-allowed-license = "allow"
+# Solo licenze compatibili con GPL-3.0 (e AGPL-3.0 per il server).
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "CC0-1.0",
+  "MPL-2.0",
+  "GPL-3.0-only",
+  "GPL-3.0-or-later",
+  "AGPL-3.0-only",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+deny = [
+  # Crittografia: usiamo esclusivamente le implementazioni RustCrypto/dalek.
+  { crate = "openssl", reason = "usare rustls e RustCrypto" },
+  { crate = "openssl-sys", reason = "usare rustls e RustCrypto" },
+  { crate = "rust-crypto", reason = "non mantenuto" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

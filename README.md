@@ -2,7 +2,7 @@
 
 App di autenticazione a due fattori (TOTP/HOTP) open source, multipiattaforma — **Web (PWA)**, **iOS/Android**, **Windows/macOS/Linux** — con vault cifrato *zero-knowledge* e sincronizzazione end-to-end opzionale.
 
-> 🚧 Progetto in fase di pianificazione. Vedi il [Piano di progetto](docs/PIANO-DI-PROGETTO.md).
+> 🚧 In sviluppo: fase 0 completata. Vedi il [Piano di progetto](docs/PIANO-DI-PROGETTO.md).
 
 ## Punti chiave
 - Codici TOTP (RFC 6238) e HOTP (RFC 4226), import da Google Authenticator, Aegis, 2FAS e altri.
@@ -11,5 +11,20 @@ App di autenticazione a due fattori (TOTP/HOTP) open source, multipiattaforma �
 - Chiavi protette da Secure Enclave / StrongBox / TPM / WebAuthn PRF.
 - Funziona offline; nessuna telemetria.
 
+## Struttura
+| Percorso | Contenuto |
+|---|---|
+| `crates/core` | Core crittografico (OTP, vault, chiavi) — senza I/O, compilabile in WASM |
+| `crates/import` | Import da altri authenticator |
+| `crates/sync-proto` | Protocollo di sincronizzazione zero-knowledge |
+| `apps/web` | PWA (Vite + Svelte 5 + TypeScript) |
+| `docs/` | Piano, [threat model](docs/threat-model.md), [ADR](docs/adr/) |
+
+## Sviluppo
+Vedi [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Sicurezza
 Per segnalare vulnerabilità consulta [SECURITY.md](SECURITY.md).
+
+## Licenza
+[GPL-3.0-only](LICENSE). Il futuro server di sincronizzazione sarà rilasciato con licenza AGPL-3.0-only.

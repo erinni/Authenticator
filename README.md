@@ -1,0 +1,15 @@
+# Authenticator
+
+App di autenticazione a due fattori (TOTP/HOTP) open source, multipiattaforma — **Web (PWA)**, **iOS/Android**, **Windows/macOS/Linux** — con vault cifrato *zero-knowledge* e sincronizzazione end-to-end opzionale.
+
+> 🚧 Progetto in fase di pianificazione. Vedi il [Piano di progetto](docs/PIANO-DI-PROGETTO.md).
+
+## Punti chiave
+- Codici TOTP (RFC 6238) e HOTP (RFC 4226), import da Google Authenticator, Aegis, 2FAS e altri.
+- Core in Rust condiviso da tutte le piattaforme (nativo + WebAssembly).
+- Crittografia: Argon2id, XChaCha20-Poly1305, HKDF, Ed25519, scambio chiavi ibrido post-quantistico X25519 + ML-KEM-768, autenticazione OPAQUE + passkey.
+- Chiavi protette da Secure Enclave / StrongBox / TPM / WebAuthn PRF.
+- Funziona offline; nessuna telemetria.
+
+## Sicurezza
+Per segnalare vulnerabilità consulta [SECURITY.md](SECURITY.md).

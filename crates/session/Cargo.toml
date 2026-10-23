@@ -1,0 +1,21 @@
+[package]
+name = "authenticator-session"
+description = "Sessione con il vault sbloccato, condivisa da PWA (WebAssembly) e app native."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+authenticator-core.workspace = true
+authenticator-import = { path = "../import" }
+serde = { version = "1.0.229", default-features = false, features = ["derive", "std"] }
+zeroize = "1.9.1"
+
+[dev-dependencies]
+serde_json = { version = "1.0.154", default-features = false, features = ["std"] }
+
+[lints]
+workspace = true

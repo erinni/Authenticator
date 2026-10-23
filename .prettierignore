@@ -5,3 +5,5 @@ pnpm-lock.yaml
 Cargo.lock
 LICENSE
 *.md
+# Test vector di terze parti: devono restare identici agli originali.
+**/tests/data/

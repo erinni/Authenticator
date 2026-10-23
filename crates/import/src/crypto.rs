@@ -118,6 +118,94 @@ mod tests {
         assert_eq!(*key, expected);
     }
 
+    fn wycheproof(name: &str) -> serde_json::Value {
+        let path = format!(
+            "{}/tests/data/wycheproof/{name}",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
+    }
+
+    fn hex(v: &serde_json::Value) -> Vec<u8> {
+        crate::hex::decode(v.as_str().unwrap()).unwrap().to_vec()
+    }
+
+    fn cases(file: &serde_json::Value) -> Vec<(&serde_json::Value, &serde_json::Value)> {
+        file["testGroups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|g| g["tests"].as_array().unwrap().iter().map(move |t| (g, t)))
+            .collect()
+    }
+
+    /// Wycheproof AES-GCM: chiave 256 bit, nonce 96 bit, tag 128 bit (come Aegis/andOTP/2FAS).
+    #[test]
+    fn wycheproof_aes_256_gcm() {
+        let file = wycheproof("aes_gcm_test.json");
+        let (mut valid, mut invalid) = (0, 0);
+        for (group, t) in cases(&file) {
+            if group["keySize"] != 256 || group["ivSize"] != 96 || group["tagSize"] != 128 {
+                continue;
+            }
+            let id = &t["tcId"];
+            let key: [u8; 32] = hex(&t["key"]).try_into().unwrap();
+            let nonce: [u8; 12] = hex(&t["iv"]).try_into().unwrap();
+            // La nostra funzione non usa AAD: i casi con AAD non si applicano.
+            if !hex(&t["aad"]).is_empty() {
+                continue;
+            }
+            let mut ciphertext = hex(&t["ct"]);
+            ciphertext.extend(hex(&t["tag"]));
+            let result = aes_gcm_open(&key, &nonce, &ciphertext);
+            if t["result"] == "invalid" {
+                assert!(result.is_err(), "tcId {id} accettato");
+                invalid += 1;
+            } else {
+                assert_eq!(
+                    result.unwrap().as_slice(),
+                    hex(&t["msg"]).as_slice(),
+                    "tcId {id}"
+                );
+                valid += 1;
+            }
+        }
+        assert!(
+            valid >= 10 && invalid >= 10,
+            "valid {valid}, invalid {invalid}"
+        );
+    }
+
+    /// Wycheproof PBKDF2: casi validi con output ≥ 256 bit. I blocchi PBKDF2 sono
+    /// indipendenti, quindi i primi 32 byte di un output più lungo coincidono con il nostro.
+    #[test]
+    fn wycheproof_pbkdf2() {
+        type Kdf = fn(&[u8], &[u8], u32) -> Result<Key, ImportError>;
+        for (name, kdf) in [
+            ("pbkdf2_hmacsha1_test.json", pbkdf2_sha1 as Kdf),
+            ("pbkdf2_hmacsha256_test.json", pbkdf2_sha256 as Kdf),
+        ] {
+            let file = wycheproof(name);
+            let mut checked = 0;
+            for (_, t) in cases(&file) {
+                let iterations = u32::try_from(t["iterationCount"].as_u64().unwrap()).unwrap();
+                let long_enough = t["dkLen"].as_u64().unwrap() >= 32;
+                if !long_enough || t["result"] != "valid" || iterations > 100_000 {
+                    continue;
+                }
+                let key = kdf(&hex(&t["password"]), &hex(&t["salt"]), iterations).unwrap();
+                assert_eq!(
+                    key.as_slice(),
+                    &hex(&t["dk"])[..32],
+                    "{name} tcId {}",
+                    t["tcId"]
+                );
+                checked += 1;
+            }
+            assert!(checked >= 30, "{name}: {checked}");
+        }
+    }
+
     #[test]
     fn rejects_dangerous_parameters() {
         assert!(pbkdf2_sha1(b"p", b"s", 0).is_err());

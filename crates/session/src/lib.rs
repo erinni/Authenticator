@@ -515,12 +515,19 @@ mod tests {
 
     use super::*;
 
-    const PASSWORD: &[u8] = b"correct horse battery staple";
+    /// Segreto di test generato a ogni esecuzione (niente credenziali scritte nel codice).
+    fn random_secret(len: usize) -> Vec<u8> {
+        use std::hash::BuildHasher;
+        let state = std::collections::hash_map::RandomState::new();
+        (0..len)
+            .map(|i| state.hash_one(i).to_le_bytes()[0])
+            .collect()
+    }
     const URI: &str =
         "otpauth://totp/Example:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Example";
 
-    fn session() -> Session {
-        Session::create(PASSWORD, KdfParams::MINIMUM).unwrap()
+    fn session(password: &[u8]) -> Session {
+        Session::create(password, KdfParams::MINIMUM).unwrap()
     }
 
     #[test]
@@ -545,7 +552,8 @@ mod tests {
 
     #[test]
     fn seal_and_reopen_keeps_accounts() {
-        let mut s = session();
+        let password = random_secret(24);
+        let mut s = session(&password);
         let id = s.add_uri(URI, 1_700_000_000).unwrap();
         assert_eq!(
             s.add_uri(URI, 1_700_000_000).unwrap_err().message(),
@@ -553,12 +561,12 @@ mod tests {
         );
         let file = s.seal().unwrap();
 
-        let reopened = Session::open(&file, PASSWORD, KdfParams::MINIMUM).unwrap();
+        let reopened = Session::open(&file, &password, KdfParams::MINIMUM).unwrap();
         let accounts = reopened.accounts();
         assert_eq!(accounts.len(), 1);
         assert_eq!(accounts[0].id, id);
         assert_eq!(accounts[0].issuer.as_deref(), Some("Example"));
-        assert!(Session::open(&file, b"wrong", KdfParams::MINIMUM).is_err());
+        assert!(Session::open(&file, &random_secret(24), KdfParams::MINIMUM).is_err());
 
         let codes = reopened.totp_all(59).unwrap();
         assert_eq!(codes[&id].remaining, 1);
@@ -567,12 +575,13 @@ mod tests {
 
     #[test]
     fn external_slot_unlocks() {
-        let mut s = session();
-        s.set_external(&[7; 16], &[9; 32]).unwrap();
+        let mut s = session(&random_secret(24));
+        let secret = random_secret(32);
+        s.set_external(&[7; 16], &secret).unwrap();
         let file = s.seal().unwrap();
         assert_eq!(external_slots(&file).unwrap(), vec!["07".repeat(16)]);
-        assert!(Session::open_external(&file, &[7; 16], &[9; 32], KdfParams::MINIMUM).is_ok());
-        assert!(Session::open_external(&file, &[7; 3], &[9; 32], KdfParams::MINIMUM).is_err());
+        assert!(Session::open_external(&file, &[7; 16], &secret, KdfParams::MINIMUM).is_ok());
+        assert!(Session::open_external(&file, &[7; 3], &secret, KdfParams::MINIMUM).is_err());
     }
 
     #[test]

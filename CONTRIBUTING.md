@@ -31,7 +31,7 @@ pnpm --filter @authenticator/web dev
 # App desktop (Tauri)
 pnpm --filter @authenticator/web build:desktop   # UI per il desktop (apps/web/dist-desktop)
 pnpm --filter @authenticator/native dev          # app con ricaricamento automatico della UI
-pnpm --filter @authenticator/native build        # installer (non firmati) in target/release/bundle
+pnpm --filter @authenticator/native bundle       # installer (non firmati) in target/release/bundle
 ```
 
 ## Regole

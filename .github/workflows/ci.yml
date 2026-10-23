@@ -103,7 +103,7 @@ jobs:
       - run: cargo clippy -p authenticator-native --all-targets --locked -- -D warnings
       - run: cargo test -p authenticator-native --locked
       - name: Installer (non firmati)
-        run: pnpm --filter @authenticator/native build
+        run: pnpm --filter @authenticator/native bundle
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-${{ matrix.os }}

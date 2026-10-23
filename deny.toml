@@ -5,7 +5,11 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+ignore = [
+  # proc-macro-error (non mantenuto): macro di compilazione usata da gtk-rs 0.18, tramite
+  # Tauri su Linux. Nessun codice a runtime e nessuna alternativa finché Tauri usa GTK 3.
+  { id = "RUSTSEC-2024-0370", reason = "macro di build di gtk-rs (Tauri su Linux), nessun aggiornamento disponibile" },
+]
 
 [licenses]
 version = 2

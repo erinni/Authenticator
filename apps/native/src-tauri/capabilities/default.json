@@ -1,0 +1,31 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Solo i comandi del core, nessuna API di sistema (file, shell, rete) esposta alla webview.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-load-vault",
+    "allow-save-vault",
+    "allow-create",
+    "allow-open",
+    "allow-open-recovery",
+    "allow-open-external",
+    "allow-external-slots",
+    "allow-verify",
+    "allow-lock",
+    "allow-seal",
+    "allow-accounts",
+    "allow-codes",
+    "allow-next-hotp",
+    "allow-add-uri",
+    "allow-remove",
+    "allow-import-data",
+    "allow-scan-qr",
+    "allow-change-password",
+    "allow-create-recovery-key",
+    "allow-set-external",
+    "allow-remove-external",
+    "allow-export-backup",
+    "allow-restore-backup"
+  ]
+}

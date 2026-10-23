@@ -22,3 +22,6 @@ coverage/
 apps/web/src/wasm/
 test-results/
 playwright-report/
+# App desktop (Tauri): build della UI e schemi generati da tauri-build
+apps/web/dist-desktop/
+apps/native/src-tauri/gen/

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-external"
+description = "Enables the set_external command without any pre-configured scope."
+commands.allow = ["set_external"]
+
+[[permission]]
+identifier = "deny-set-external"
+description = "Denies the set_external command without any pre-configured scope."
+commands.deny = ["set_external"]

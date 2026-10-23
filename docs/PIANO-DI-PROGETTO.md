@@ -245,4 +245,10 @@ Dettagli in `docs/adr/`.
   - [x] Core in un Web Worker (Argon2 non blocca l'interfaccia), policy Trusted Types per gli URL dei worker
   - [x] Service Worker per l'uso offline (cache generata alla build) e manifest per l'installazione
   - [x] Ricerca nell'elenco (senza distinguere maiuscole e accenti) e icone generate in locale (iniziale e colore dall'issuer, nessun download esterno)
-- [ ] **Fase 3 — Desktop** (prossima): Tauri 2, keychain/Windows Hello/Touch ID, auto-update firmato, scansione QR da schermo.
+- [ ] **Fase 3 — Desktop** (in corso), vedi [ADR-0004](adr/0004-app-desktop.md):
+  - [x] App Tauri 2 (`apps/native`) con il core nativo e la UI della PWA; vault su file con scrittura atomica; solo i comandi del core esposti alla webview
+  - [x] Sessione condivisa tra PWA e app native (`crates/session`)
+  - [x] CI su Linux, Windows e macOS con installer non firmati
+  - [ ] Sblocco con keychain di sistema: Touch ID, Windows Hello, Secret Service
+  - [ ] Scansione QR da schermo, blocco alla sospensione o al blocco del sistema, appunti
+  - [ ] Auto-update firmato e installer firmati e notarizzati

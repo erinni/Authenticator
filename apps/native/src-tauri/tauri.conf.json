@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Authenticator",
+  "version": "0.1.0",
+  "identifier": "io.github.erinni.authenticator",
+  "build": {
+    "frontendDist": "../../web/dist-desktop",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "pnpm --filter @authenticator/web dev:desktop",
+    "beforeBuildCommand": "pnpm --filter @authenticator/web build:desktop"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Authenticator",
+        "width": 480,
+        "height": 760,
+        "minWidth": 360,
+        "minHeight": 480
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'none'",
+        "script-src": "'self'",
+        "style-src": "'self'",
+        "img-src": "'self' data: blob:",
+        "font-src": "'self'",
+        "connect-src": "ipc: http://ipc.localhost",
+        "media-src": "'self' blob:",
+        "base-uri": "'none'",
+        "form-action": "'none'",
+        "frame-ancestors": "'none'",
+        "object-src": "'none'",
+        "require-trusted-types-for": "'script'",
+        "trusted-types": "svelte-trusted-html authenticator-script-url"
+      },
+      "freezePrototype": true,
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Codici di verifica in due passaggi (TOTP/HOTP)",
+    "licenseFile": "../../../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

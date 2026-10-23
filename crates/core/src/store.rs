@@ -42,6 +42,15 @@ pub struct Entry {
     pub account: OtpAccount,
 }
 
+/// Esito di [`Store::merge`].
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct MergeReport {
+    /// Account aggiunti.
+    pub added: usize,
+    /// Account ignorati perché già presenti.
+    pub duplicates: usize,
+}
+
 /// Elenco ordinato degli account.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Store {
@@ -88,6 +97,40 @@ impl Store {
             account,
         });
         Ok(id)
+    }
+
+    /// `true` se esiste già un account con lo stesso segreto.
+    #[must_use]
+    pub fn contains_secret(&self, secret: &SecretBytes) -> bool {
+        // Nessuna uscita anticipata: il tempo non rivela quale account corrisponde.
+        let found = self
+            .entries
+            .iter()
+            .fold(subtle::Choice::from(0), |found, e| {
+                found | e.account.secret.ct_eq(secret)
+            });
+        found.into()
+    }
+
+    /// Aggiunge gli account importati, saltando quelli già presenti (stesso segreto).
+    ///
+    /// # Errors
+    /// Come [`Store::add`]; gli account aggiunti prima dell'errore restano nell'elenco.
+    pub fn merge(
+        &mut self,
+        accounts: impl IntoIterator<Item = OtpAccount>,
+        now: u64,
+    ) -> Result<MergeReport> {
+        let mut report = MergeReport::default();
+        for account in accounts {
+            if self.contains_secret(&account.secret) {
+                report.duplicates += 1;
+            } else {
+                self.add(account, now)?;
+                report.added += 1;
+            }
+        }
+        Ok(report)
     }
 
     /// Rimuove un account. Restituisce `true` se esisteva.
@@ -305,6 +348,32 @@ mod tests {
             .unwrap();
         bytes[second..second + 16].copy_from_slice(&first_id);
         assert_eq!(Store::decode(&bytes), Err(Error::InvalidFormat));
+    }
+
+    #[test]
+    fn merge_skips_duplicates() {
+        let mut store = sample();
+        let again = sample();
+        let report = store
+            .merge(again.entries.into_iter().map(|e| e.account), 1_700_000_100)
+            .unwrap();
+        assert_eq!(
+            report,
+            MergeReport {
+                added: 0,
+                duplicates: 2
+            }
+        );
+        let new = OtpAccount::from_uri("otpauth://totp/New?secret=MFRGGZDFMZTWQ2LK").unwrap();
+        let report = store.merge([new], 1_700_000_200).unwrap();
+        assert_eq!(
+            report,
+            MergeReport {
+                added: 1,
+                duplicates: 0
+            }
+        );
+        assert_eq!(store.entries().len(), 3);
     }
 
     proptest! {

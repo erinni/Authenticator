@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath, configurazione "installers": gli installer NSIS e MSI, che contengono
+     l'eseguibile già firmato con la configurazione "executable". -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="nsis/Authenticator_*_x64-setup.exe">
+      <authenticode-sign />
+    </pe-file>
+    <msi-file path="msi/Authenticator_*_x64_en-US.msi">
+      <authenticode-sign />
+    </msi-file>
+  </zip-file>
+</artifact-configuration>

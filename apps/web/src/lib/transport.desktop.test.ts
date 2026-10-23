@@ -43,6 +43,10 @@ describe("trasporto desktop", () => {
       "scan_screen",
       "copy_code",
       "watch_lock",
+      "check_update",
+      "install_update",
+      "update_auto_check",
+      "set_update_auto_check",
     ];
     for (const command of commands) {
       expect(build).toContain(`"${command}"`);

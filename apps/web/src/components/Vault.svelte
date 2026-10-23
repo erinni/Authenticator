@@ -6,6 +6,7 @@
   import ImportPanel from "./ImportPanel.svelte";
   import ScanQr from "./ScanQr.svelte";
   import SecuritySettings from "./SecuritySettings.svelte";
+  import Updates from "./Updates.svelte";
   import { core, type AccountView, type TotpView } from "../lib/core";
   import { nowSeconds } from "../lib/format";
   import { matches } from "../lib/search";
@@ -122,6 +123,7 @@
     <div class="panels">
       <SecuritySettings {verify} onchange={changed} {externalSlots} />
       <BackupPanel onchange={changed} />
+      <Updates mode="settings" />
     </div>
   {/if}
 </section>

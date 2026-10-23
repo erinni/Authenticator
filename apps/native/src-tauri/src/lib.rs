@@ -14,6 +14,7 @@ mod clipboard;
 mod platform_unlock;
 mod screen;
 mod storage;
+mod updates;
 
 use std::path::PathBuf;
 use std::sync::{Mutex, PoisonError};
@@ -71,12 +72,13 @@ mod commands {
         AccountView, CodeView, ImportView, ScanView, Session,
         external_slots as peek_external_slots, parse_id, unix_seconds,
     };
-    use tauri::State;
     use tauri::ipc::{Channel, InvokeBody, Request, Response};
+    use tauri::{Manager, State};
     use zeroize::Zeroizing;
 
     use super::auto_lock::LockWatch;
     use super::clipboard::Clipboard;
+    use super::updates::{self, PendingUpdate, Progress, UpdateCheck};
     use super::{CommandResult, Core, KDF, platform_unlock, screen, secret, storage, text};
 
     /// Vault cifrato salvato (vuoto se non esiste ancora: un vault reale non lo è mai).
@@ -249,6 +251,38 @@ mod commands {
         watch.set(on_lock);
     }
 
+    /// Cerca un aggiornamento dell'app (solo nelle build di release).
+    #[tauri::command]
+    pub(super) async fn check_update(
+        app: tauri::AppHandle,
+        pending: State<'_, PendingUpdate>,
+    ) -> CommandResult<UpdateCheck> {
+        updates::check(&app, &pending).await
+    }
+
+    /// Preferenza: cercare aggiornamenti all'avvio.
+    #[tauri::command(async)]
+    pub(super) fn update_auto_check(app: tauri::AppHandle) -> CommandResult<bool> {
+        Ok(updates::auto_check(
+            &app.path().app_data_dir().map_err(text)?,
+        ))
+    }
+
+    #[tauri::command(async)]
+    pub(super) fn set_update_auto_check(enabled: bool, app: tauri::AppHandle) -> CommandResult<()> {
+        updates::set_auto_check(&app.path().app_data_dir().map_err(text)?, enabled).map_err(text)
+    }
+
+    /// Installa l'aggiornamento trovato dall'ultimo controllo e riavvia l'app.
+    #[tauri::command]
+    pub(super) async fn install_update(
+        on_progress: Channel<Progress>,
+        app: tauri::AppHandle,
+        pending: State<'_, PendingUpdate>,
+    ) -> CommandResult<()> {
+        updates::install(&app, &pending, on_progress).await
+    }
+
     #[tauri::command(async)]
     pub(super) fn change_password(password: Vec<u8>, core: State<'_, Core>) -> CommandResult<()> {
         let password = secret(password);
@@ -355,6 +389,9 @@ mod commands {
 /// Webview non disponibile o cartella dati dell'app non determinabile.
 pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
+        // Nessun permesso concesso alla webview: il plugin è usato solo dai comandi
+        // `check_update` e `install_update`.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let vault_path = app.path().app_data_dir()?.join(storage::VAULT_FILE);
             app.manage(Core {
@@ -363,6 +400,7 @@ pub fn run() -> tauri::Result<()> {
             });
             app.manage(clipboard::Clipboard::default());
             app.manage(auto_lock::LockWatch::default());
+            app.manage(updates::PendingUpdate::default());
             auto_lock::start(app.handle().clone())?;
             Ok(())
         })
@@ -397,6 +435,10 @@ pub fn run() -> tauri::Result<()> {
             commands::scan_screen,
             commands::copy_code,
             commands::watch_lock,
+            commands::check_update,
+            commands::install_update,
+            commands::update_auto_check,
+            commands::set_update_auto_check,
         ])
         .run(tauri::generate_context!())
 }

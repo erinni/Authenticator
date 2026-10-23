@@ -27,6 +27,11 @@ App di autenticazione a due fattori (TOTP/HOTP) open source, multipiattaforma ‚Ä
 ## Sviluppo
 Vedi [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Firma del codice
+Firma del codice gratuita fornita da [SignPath.io](https://about.signpath.io/), certificato di
+[SignPath Foundation](https://signpath.org/). Vedi la [politica di firma](CODE_SIGNING.md) e
+come si fa una [release](docs/release.md).
+
 ## Sicurezza
 Per segnalare vulnerabilit√† consulta [SECURITY.md](SECURITY.md).
 

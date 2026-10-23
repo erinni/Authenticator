@@ -1,14 +1,12 @@
 <script lang="ts">
-  import type { Session } from "../lib/core";
-  import { errorMessage } from "../lib/core";
-  import { checkNewPassword, withPassword } from "../lib/secret-input";
+  import { core, errorMessage } from "../lib/core";
+  import { checkNewPassword, passwordBytes } from "../lib/secret-input";
 
   interface Props {
-    session: Session;
     verify: (password: string) => Promise<boolean>;
     onchange: () => Promise<void>;
   }
-  const { session, verify, onchange }: Props = $props();
+  const { verify, onchange }: Props = $props();
 
   let recoveryKey = $state<string | null>(null);
   let current = $state("");
@@ -40,7 +38,7 @@
     busy = true;
     try {
       if (await reauthenticated()) {
-        recoveryKey = session.create_recovery_key();
+        recoveryKey = await core.createRecoveryKey();
         await onchange();
       }
     } catch (e) {
@@ -61,9 +59,7 @@
     busy = true;
     try {
       if (await reauthenticated()) {
-        withPassword(next, (bytes) => {
-          session.change_password(bytes);
-        });
+        await core.changePassword(passwordBytes(next));
         await onchange();
         message = "Password cambiata.";
       }

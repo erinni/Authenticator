@@ -213,6 +213,30 @@ impl Session {
         })
     }
 
+    /// Codici TOTP di tutti gli account all'istante `unix_time` (JSON):
+    /// `{id: {code, remaining, period}}`. Gli account HOTP sono esclusi.
+    ///
+    /// # Errors
+    /// Orario non valido.
+    pub fn totp_all(&self, unix_time: f64) -> Result<String, JsError> {
+        let now = unix_seconds(unix_time)?;
+        let mut codes = std::collections::BTreeMap::new();
+        for entry in self.store.entries() {
+            if let OtpKind::Totp { period } = entry.account.kind {
+                let totp = entry.account.totp_at(now).map_err(err)?;
+                codes.insert(
+                    format_id(&entry.id),
+                    CodeView {
+                        code: totp.code.to_string(),
+                        remaining: totp.remaining_seconds,
+                        period: period.get(),
+                    },
+                );
+            }
+        }
+        to_json(&codes)
+    }
+
     /// Prossimo codice HOTP; avanza il contatore (salvare poi con [`Session::seal`]).
     ///
     /// # Errors

@@ -21,7 +21,8 @@ const csp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "require-trusted-types-for 'script'",
-  "trusted-types svelte-trusted-html",
+  // Policy di Svelte (template compilati) e nostra per gli URL di worker e Service Worker.
+  "trusted-types svelte-trusted-html authenticator-script-url",
   "upgrade-insecure-requests",
 ].join("; ");
 

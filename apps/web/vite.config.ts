@@ -1,9 +1,10 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";
 import { securityHeaders } from "./security-headers.ts";
+import { serviceWorker } from "./service-worker-plugin.ts";
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [svelte(), serviceWorker()],
   build: {
     target: "es2022",
     sourcemap: false,

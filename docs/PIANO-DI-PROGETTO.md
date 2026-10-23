@@ -242,4 +242,5 @@ Dettagli in `docs/adr/`.
   - [x] Recovery key e cambio password dalla UI, con ri-autenticazione
   - [x] Scansione QR da fotocamera e immagine (decodifica in Rust/WASM con `rqrr`, fuzzing), import da altre app e backup cifrato dalla UI
   - [x] Test end-to-end Playwright in CI con la CSP di produzione (fotocamera simulata inclusa)
-  - [ ] Service Worker per l'uso offline, manifest PWA, Argon2 in un Web Worker
+  - [x] Core in un Web Worker (Argon2 non blocca l'interfaccia), policy Trusted Types per gli URL dei worker
+  - [x] Service Worker per l'uso offline (cache generata alla build) e manifest per l'installazione

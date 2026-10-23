@@ -1,16 +1,14 @@
 <script lang="ts">
-  import type { Session } from "../lib/core";
-  import { errorMessage, parseImport } from "../lib/core";
+  import { core, errorMessage } from "../lib/core";
   import { download, readFile, today } from "../lib/files";
   import { nowSeconds } from "../lib/format";
   import { friendlyError, importSummary } from "../lib/messages";
-  import { checkNewPassword, withPassword } from "../lib/secret-input";
+  import { checkNewPassword, passwordBytes } from "../lib/secret-input";
 
   interface Props {
-    session: Session;
     onchange: () => Promise<void>;
   }
-  const { session, onchange }: Props = $props();
+  const { onchange }: Props = $props();
 
   let password = $state("");
   let confirmation = $state("");
@@ -29,9 +27,8 @@
       return;
     }
     busy = true;
-    await new Promise((resolve) => setTimeout(resolve, 30));
     try {
-      const file = withPassword(password, (bytes) => session.export_backup(bytes));
+      const file = await core.exportBackup(passwordBytes(password));
       download(file, `authenticator-${today()}.authbackup`);
       message =
         "Backup cifrato scaricato. Conservalo insieme alla sua password, in luoghi diversi.";
@@ -52,9 +49,7 @@
     busy = true;
     try {
       const data = await readFile(restoreFile);
-      const report = parseImport(
-        withPassword(restorePassword, (bytes) => session.restore_backup(data, bytes, nowSeconds())),
-      );
+      const report = await core.restoreBackup(data, passwordBytes(restorePassword), nowSeconds());
       message = `Ripristino completato: ${importSummary(report)}.`;
       await onchange();
     } catch (e) {

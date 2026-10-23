@@ -77,6 +77,51 @@ impl OtpAccount {
         }
     }
 
+    /// Crea un account validando etichette e segreto.
+    ///
+    /// Issuer e nome vengono ripuliti dagli spazi iniziali e finali; un issuer vuoto
+    /// diventa `None`.
+    ///
+    /// # Errors
+    /// [`Error::InvalidUri`] per etichette vuote, troppo lunghe o con caratteri non
+    /// ammessi; [`Error::InvalidSecretLength`] per segreti vuoti o troppo lunghi.
+    pub fn new(
+        issuer: Option<&str>,
+        name: &str,
+        kind: OtpKind,
+        algorithm: Algorithm,
+        digits: Digits,
+        secret: SecretBytes,
+    ) -> Result<Self> {
+        // Caratteri verificati prima del trim: `trim` rimuoverebbe anche `\n` e simili.
+        if let Some(issuer) = issuer {
+            reject_unsafe_chars(issuer)?;
+        }
+        reject_unsafe_chars(name)?;
+        let issuer = issuer
+            .map(str::trim)
+            .filter(|i| !i.is_empty())
+            .map(str::to_owned);
+        let name = name.trim().to_owned();
+        if name.is_empty() && issuer.is_none() {
+            return Err(Error::InvalidUri);
+        }
+        for text in issuer.iter().chain(core::iter::once(&name)) {
+            validate_text(text)?;
+        }
+        if secret.is_empty() || secret.len() > otp::MAX_SECRET_LEN {
+            return Err(Error::InvalidSecretLength);
+        }
+        Ok(Self {
+            issuer,
+            name,
+            kind,
+            algorithm,
+            digits,
+            secret,
+        })
+    }
+
     /// Interpreta un URI `otpauth://totp/...` o `otpauth://hotp/...`.
     ///
     /// # Errors
@@ -103,9 +148,6 @@ impl OtpAccount {
 
         let secret =
             SecretBytes::new(base32::decode(get("secret").ok_or(Error::InvalidUri)?)?.to_vec());
-        if secret.is_empty() || secret.len() > otp::MAX_SECRET_LEN {
-            return Err(Error::InvalidSecretLength);
-        }
         let algorithm = match get("algorithm") {
             Some(a) => Algorithm::parse(a).ok_or(Error::InvalidUri)?,
             None => Algorithm::default(),
@@ -131,38 +173,15 @@ impl OtpAccount {
 
         let label = percent_decode(label, false)?;
         reject_unsafe_chars(&label)?;
-        if let Some(issuer) = get("issuer") {
-            reject_unsafe_chars(issuer)?;
-        }
         let (label_issuer, name) = match label.split_once(':') {
-            Some((issuer, name)) => (Some(issuer.trim().to_owned()), name.trim().to_owned()),
-            None => (None, label.trim().to_owned()),
+            Some((issuer, name)) => (Some(issuer), name),
+            None => (None, label.as_str()),
         };
         // Il parametro `issuer` prevale sul prefisso dell'etichetta.
         let issuer = get("issuer")
-            .map(|i| i.trim().to_owned())
-            .or(label_issuer)
-            .filter(|i| !i.is_empty());
-
-        if name.is_empty() && issuer.is_none() {
-            return Err(Error::InvalidUri);
-        }
-        if issuer
-            .iter()
-            .chain(core::iter::once(&name))
-            .any(|t| t.chars().count() > MAX_LABEL_CHARS)
-        {
-            return Err(Error::InvalidUri);
-        }
-
-        Ok(Self {
-            issuer,
-            name,
-            kind,
-            algorithm,
-            digits,
-            secret,
-        })
+            .filter(|i| !i.trim().is_empty())
+            .or(label_issuer);
+        Self::new(issuer, name, kind, algorithm, digits, secret)
     }
 
     /// Esporta l'account come URI `otpauth://`.
@@ -253,6 +272,15 @@ fn percent_encode(input: &str) -> String {
         }
     }
     out
+}
+
+/// Valida issuer o nome già normalizzati: lunghezza e caratteri ammessi.
+pub(crate) fn validate_text(text: &str) -> Result<()> {
+    reject_unsafe_chars(text)?;
+    if text.chars().count() > MAX_LABEL_CHARS {
+        return Err(Error::InvalidUri);
+    }
+    Ok(())
 }
 
 /// Rifiuta caratteri di controllo e override bidirezionali, usabili per falsificare

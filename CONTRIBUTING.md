@@ -12,6 +12,10 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo deny check            # richiede: cargo install --locked cargo-deny
 
+# Fuzzing (richiede: rustup toolchain install nightly && cargo install --locked cargo-fuzz)
+cargo +nightly fuzz list --fuzz-dir fuzz
+cargo +nightly fuzz run --fuzz-dir fuzz vault_open -- -max_total_time=300
+
 # Web
 pnpm install
 pnpm format:check

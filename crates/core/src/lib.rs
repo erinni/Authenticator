@@ -9,12 +9,15 @@
 pub mod account;
 pub mod aead;
 pub mod base32;
+mod codec;
 pub mod error;
 pub mod otp;
 pub mod secret;
+pub mod store;
 pub mod vault;
 
 pub use account::{OtpAccount, OtpKind};
 pub use error::{Error, Result};
 pub use secret::{Key256, SecretBytes};
+pub use store::{Entry, EntryId, Store};
 pub use vault::{Credential, KdfParams, RecoveryKey, Vault};

@@ -46,6 +46,8 @@ name = "authenticator-import"
 version = "0.0.0"
 dependencies = [
  "authenticator-core",
+ "proptest",
+ "zeroize",
 ]
 
 [[package]]

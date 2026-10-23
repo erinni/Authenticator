@@ -27,6 +27,7 @@ use zeroize::Zeroizing;
 
 use crate::aead;
 use crate::base32;
+use crate::codec::Reader;
 use crate::error::{Error, Result};
 use crate::secret::{Key256, SecretBytes, random_array};
 
@@ -446,39 +447,8 @@ impl Vault {
     }
 }
 
-/// Lettore sequenziale con controllo dei limiti (nessuna indicizzazione diretta).
-struct Reader<'a> {
-    buf: &'a [u8],
-    pos: usize,
-}
-
-impl<'a> Reader<'a> {
-    fn take(&mut self, n: usize) -> Result<&'a [u8]> {
-        let end = self.pos.checked_add(n).ok_or(Error::InvalidFormat)?;
-        let out = self.buf.get(self.pos..end).ok_or(Error::InvalidFormat)?;
-        self.pos = end;
-        Ok(out)
-    }
-
-    fn array<const N: usize>(&mut self) -> Result<[u8; N]> {
-        self.take(N)?.try_into().map_err(|_| Error::InvalidFormat)
-    }
-
-    fn u8(&mut self) -> Result<u8> {
-        Ok(u8::from_be_bytes(self.array()?))
-    }
-
-    fn u16(&mut self) -> Result<u16> {
-        Ok(u16::from_be_bytes(self.array()?))
-    }
-
-    fn u32(&mut self) -> Result<u32> {
-        Ok(u32::from_be_bytes(self.array()?))
-    }
-}
-
 fn parse_header(file: &[u8]) -> Result<(Vec<Slot>, usize)> {
-    let mut r = Reader { buf: file, pos: 0 };
+    let mut r = Reader::new(file);
     if r.array::<8>()? != MAGIC {
         return Err(Error::InvalidFormat);
     }
@@ -512,7 +482,7 @@ fn parse_header(file: &[u8]) -> Result<(Vec<Slot>, usize)> {
             wrapped_dek,
         });
     }
-    Ok((slots, r.pos))
+    Ok((slots, r.position()))
 }
 
 #[cfg(test)]

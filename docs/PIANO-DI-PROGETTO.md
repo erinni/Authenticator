@@ -226,4 +226,12 @@ Dettagli in `docs/adr/`.
 
 - [x] **Fase 0 — Fondamenta**: monorepo Cargo + pnpm, lint rigorosi, CI (Rust, Web, cargo-deny, pnpm audit, CodeQL, dependency review), Dependabot, threat model, ADR 0001–0003, CSP + Trusted Types nella PWA.
   Da fare manualmente su GitHub: le impostazioni elencate in `CONTRIBUTING.md`.
-- [ ] **Fase 1 — Core crittografico**: prossimo passo, partendo da TOTP/HOTP con i test vector delle RFC.
+- [~] **Fase 1 — Core crittografico** (in corso):
+  - [x] HOTP/TOTP con test vector RFC 4226 / 6238 (SHA-1/256/512)
+  - [x] Base32, parser ed export `otpauth://` con difese anti-spoofing
+  - [x] Vault formato v1: DEK casuale, slot password (Argon2id) / recovery key / segreto di piattaforma, header autenticato, rotazione della DEK
+  - [x] Serializzazione degli account nel vault (formato binario versionato)
+  - [x] Import da Google Authenticator (`otpauth-migration://`)
+  - [x] Fuzzing (5 target) in CI, property test, test di compatibilità del formato
+  - [ ] Import da Aegis, 2FAS, andOTP
+  - [ ] Export/backup cifrato verso file e vettori Wycheproof

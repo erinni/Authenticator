@@ -1,0 +1,56 @@
+[package]
+name = "authenticator-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "GPL-3.0-only"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+# Crate separato dal workspace principale: richiede la toolchain nightly.
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "0.4.10"
+authenticator-core = { path = "../crates/core" }
+authenticator-import = { path = "../crates/import" }
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "base32_decode"
+path = "fuzz_targets/base32_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "otpauth_uri"
+path = "fuzz_targets/otpauth_uri.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "vault_open"
+path = "fuzz_targets/vault_open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "store_decode"
+path = "fuzz_targets/store_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "google_migration"
+path = "fuzz_targets/google_migration.rs"
+test = false
+doc = false
+bench = false

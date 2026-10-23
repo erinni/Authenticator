@@ -26,6 +26,10 @@
     "allow-set-external",
     "allow-remove-external",
     "allow-export-backup",
-    "allow-restore-backup"
+    "allow-restore-backup",
+    "allow-platform-unlock",
+    "allow-enable-platform-unlock",
+    "allow-unlock-with-platform",
+    "allow-disable-platform-unlock"
   ]
 }

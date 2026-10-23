@@ -33,5 +33,9 @@ const fn authenticator_commands() -> &'static [&'static str] {
         "remove_external",
         "export_backup",
         "restore_backup",
+        "platform_unlock",
+        "enable_platform_unlock",
+        "unlock_with_platform",
+        "disable_platform_unlock",
     ]
 }

@@ -31,8 +31,17 @@ describe("trasporto desktop", () => {
     const tauri = new URL("../../../native/src-tauri/", import.meta.url);
     const build = readFileSync(new URL("build.rs", tauri), "utf8");
     const capability = readFileSync(new URL("capabilities/default.json", tauri), "utf8");
-    for (const method of Object.keys(PARAMS) as Method[]) {
-      const command = commandName(method);
+    // Metodi di CoreApi, più i comandi usati da storage.desktop.ts ed external-unlock.desktop.ts.
+    const commands = [
+      ...(Object.keys(PARAMS) as Method[]).map(commandName),
+      "load_vault",
+      "save_vault",
+      "platform_unlock",
+      "enable_platform_unlock",
+      "unlock_with_platform",
+      "disable_platform_unlock",
+    ];
+    for (const command of commands) {
       expect(build).toContain(`"${command}"`);
       expect(capability).toContain(`"allow-${command.replaceAll("_", "-")}"`);
     }

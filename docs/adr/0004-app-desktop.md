@@ -23,7 +23,16 @@ core, come si condivide la UI con la PWA e quali API di sistema sono raggiungibi
   in modo atomico. Il formato è lo stesso della PWA.
 - **Argon2id**: parametri `KdfParams::NATIVE` (4 lane) per le password create su desktop.
 - **Passkey**: non disponibili su desktop (WebAuthn PRF non uniforme nelle webview di sistema e
-  origine non web); lo sblocco biometrico passerà da Touch ID / Windows Hello / Secret Service.
+  origine non web). Al loro posto c'è lo sblocco di sistema.
+- **Sblocco di sistema** (aggiornato il 2026-10-23): usa lo stesso tipo di slot "esterno" delle
+  passkey, con un id casuale, e il segreto non lascia mai il processo nativo.
+  - *Windows Hello* (`KeyCredentialManager`): la chiave RSA dello slot, non esportabile e nel TPM
+    se presente, firma una sfida fissa; la firma PKCS#1 v1.5 è deterministica ed è il segreto.
+    Su disco non si salva nulla e ogni sblocco chiede PIN, impronta o volto.
+  - *Linux* (Secret Service): segreto casuale di 32 byte nel portachiavi della sessione. Senza
+    biometria vale quanto la sessione utente: la UI lo dice prima dell'attivazione.
+  - *macOS*: rimandato. Il Keychain con Touch ID richiede l'app firmata con un Developer ID.
+  - Nessun `unsafe`: le API WinRT del crate `windows` sono sicure.
 
 ## Alternative considerate
 - **Core WebAssembly anche nella webview**: zero codice nativo, ma i segreti resterebbero nel

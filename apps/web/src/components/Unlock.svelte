@@ -1,19 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { PasskeyError, passkeySupported } from "../lib/passkey";
+  import { type UnlockOption, unlockOption } from "../lib/external-unlock";
+  import { UnlockError } from "../lib/unlock-error";
 
   interface Props {
     onunlock: (password: string) => Promise<void>;
-    onpasskey: () => Promise<void>;
+    /** Sblocco con passkey (PWA) o con il sistema (desktop). */
+    onexternal: () => Promise<void>;
     onrecover: (recoveryKey: string) => Promise<void>;
-    /** Slot passkey del vault: senza, il pulsante non compare. */
-    passkeys: readonly string[];
+    /** Slot esterni del vault: senza, il pulsante non compare. */
+    externalSlots: readonly string[];
   }
-  const { onunlock, onpasskey, onrecover, passkeys }: Props = $props();
+  const { onunlock, onexternal, onrecover, externalSlots }: Props = $props();
 
-  let supported = $state(false);
+  let option = $state<UnlockOption | null>(null);
   onMount(async () => {
-    supported = await passkeySupported();
+    option = await unlockOption();
   });
 
   let useRecovery = $state(false);
@@ -38,13 +40,13 @@
     }
   }
 
-  async function usePasskey() {
+  async function useExternal(failed: string) {
     busy = true;
     error = null;
     try {
-      await onpasskey();
+      await onexternal();
     } catch (e) {
-      error = e instanceof PasskeyError ? e.message : "Passkey non valida o vault danneggiato.";
+      error = e instanceof UnlockError ? e.message : failed;
     } finally {
       busy = false;
     }
@@ -73,9 +75,15 @@
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   <button type="submit" disabled={busy}>{busy ? "Sblocco in corso…" : "Sblocca"}</button>
-  {#if supported && passkeys.length > 0 && !useRecovery}
-    <button type="button" class="ghost" disabled={busy} onclick={usePasskey}>
-      Sblocca con passkey
+  {#if option?.available && externalSlots.length > 0 && !useRecovery}
+    {@const texts = option.texts}
+    <button
+      type="button"
+      class="ghost"
+      disabled={busy}
+      onclick={() => void useExternal(texts.failed)}
+    >
+      {texts.unlock}
     </button>
   {/if}
   <button

@@ -14,9 +14,9 @@
     onchange: () => Promise<void>;
     onlock: () => void;
     verify: (password: string) => Promise<boolean>;
-    passkeys: readonly string[];
+    externalSlots: readonly string[];
   }
-  const { onchange, onlock, verify, passkeys }: Props = $props();
+  const { onchange, onlock, verify, externalSlots }: Props = $props();
 
   const TABS = [
     { id: "codes", label: "Codici" },
@@ -120,7 +120,7 @@
     </div>
   {:else}
     <div class="panels">
-      <SecuritySettings {verify} onchange={changed} {passkeys} />
+      <SecuritySettings {verify} onchange={changed} {externalSlots} />
       <BackupPanel onchange={changed} />
     </div>
   {/if}

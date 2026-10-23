@@ -5,7 +5,7 @@
   import Vault from "./components/Vault.svelte";
   import { startAutoLock } from "./lib/auto-lock";
   import { core, errorMessage, initCore } from "./lib/core";
-  import { unlockSecret } from "./lib/passkey";
+  import { unlockVault } from "./lib/external-unlock";
   import { passwordBytes } from "./lib/secret-input";
   import { loadVault, requestPersistence, saveVault } from "./lib/storage";
 
@@ -16,14 +16,14 @@
   let sealed: Uint8Array | null = null;
   let stopAutoLock: (() => void) | null = null;
   let recovered = $state(false);
-  /** Id degli slot passkey del vault salvato (dall'header, senza sbloccarlo). */
-  let passkeys = $state<string[]>([]);
+  /** Id degli slot esterni (passkey o sblocco di sistema) del vault salvato, dall'header. */
+  let externalSlots = $state<string[]>([]);
 
   onMount(async () => {
     try {
       initCore();
       sealed = await loadVault();
-      await readPasskeys();
+      await readExternalSlots();
       screen = sealed ? "locked" : "setup";
     } catch (e) {
       fatal = errorMessage(e);
@@ -39,14 +39,14 @@
     return sealed.slice();
   }
 
-  async function readPasskeys() {
-    passkeys = sealed ? await core.externalSlots(savedVault()) : [];
+  async function readExternalSlots() {
+    externalSlots = sealed ? await core.externalSlots(savedVault()) : [];
   }
 
   async function persist() {
     sealed = await core.seal();
     await saveVault(sealed);
-    await readPasskeys();
+    await readExternalSlots();
   }
 
   function enter() {
@@ -66,9 +66,8 @@
     enter();
   }
 
-  async function unlockPasskey() {
-    const { slotId, secret } = await unlockSecret(passkeys);
-    await core.openExternal(savedVault(), slotId, secret);
+  async function unlockExternal() {
+    await unlockVault(savedVault(), externalSlots);
     enter();
   }
 
@@ -101,7 +100,7 @@
   {:else if screen === "setup"}
     <Setup oncreate={create} />
   {:else if screen === "locked"}
-    <Unlock onunlock={unlock} onpasskey={unlockPasskey} onrecover={recover} {passkeys} />
+    <Unlock onunlock={unlock} onexternal={unlockExternal} onrecover={recover} {externalSlots} />
   {:else}
     {#if recovered}
       <p class="notice" role="alert">
@@ -109,6 +108,6 @@
         «Impostazioni».
       </p>
     {/if}
-    <Vault onchange={persist} onlock={() => void lock()} {verify} {passkeys} />
+    <Vault onchange={persist} onlock={() => void lock()} {verify} {externalSlots} />
   {/if}
 </main>

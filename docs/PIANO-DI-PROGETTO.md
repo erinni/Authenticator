@@ -238,6 +238,8 @@ Dettagli in `docs/adr/`.
   - [x] Binding WebAssembly (`crates/wasm`): vault e segreti solo nella memoria WASM, la UI riceve solo metadati e codici
   - [x] Vault cifrato in IndexedDB, creazione/sblocco con password, elenco con codici TOTP/HOTP, aggiunta da URI
   - [x] Blocco automatico (inattività e pagina nascosta), pulizia degli appunti, test end-to-end con CSP di produzione
-  - [ ] Sblocco con passkey (WebAuthn PRF) e recovery key dalla UI
-  - [ ] Scansione QR (fotocamera e immagine), import e backup dalla UI
+  - [ ] Sblocco con passkey (WebAuthn PRF)
+  - [x] Recovery key e cambio password dalla UI, con ri-autenticazione
+  - [x] Scansione QR da fotocamera e immagine (decodifica in Rust/WASM con `rqrr`, fuzzing), import da altre app e backup cifrato dalla UI
+  - [x] Test end-to-end Playwright in CI con la CSP di produzione (fotocamera simulata inclusa)
   - [ ] Service Worker per l'uso offline, manifest PWA, Argon2 in un Web Worker

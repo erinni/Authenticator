@@ -8,7 +8,7 @@ use authenticator_core::otp::Digits;
 use authenticator_core::{
     Credential, EntryId, KdfParams, OtpAccount, OtpKind, RecoveryKey, Store, Vault, backup,
 };
-use authenticator_import::{ImportError, aegis, andotp, google, twofas};
+use authenticator_import::{ImportError, aegis, andotp, google, qr, twofas};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -34,6 +34,17 @@ struct CodeView {
     code: String,
     remaining: u32,
     period: u32,
+}
+
+#[derive(Serialize)]
+struct ScanView {
+    /// QR trovati nell'immagine.
+    found: usize,
+    /// QR non riconosciuti come account (es. un link web).
+    unsupported: usize,
+    added: usize,
+    duplicates: usize,
+    skipped: usize,
 }
 
 #[derive(Serialize)]
@@ -225,6 +236,52 @@ impl Session {
         }
         let id = self.store.add(account, unix_seconds(now)?).map_err(err)?;
         Ok(format_id(&id))
+    }
+
+    /// Cerca QR code in un fotogramma RGBA (`ImageData` di un canvas) e aggiunge gli
+    /// account trovati (`otpauth://` e `otpauth-migration://`). JSON:
+    /// `{found, unsupported, added, duplicates, skipped}`.
+    ///
+    /// Il contenuto dei QR (che include i segreti) non viene mai restituito a JavaScript.
+    ///
+    /// # Errors
+    /// Immagine troppo grande o dimensioni non coerenti con i dati.
+    pub fn scan_qr(
+        &mut self,
+        width: u32,
+        height: u32,
+        rgba: &[u8],
+        now: f64,
+    ) -> Result<String, JsError> {
+        let now = unix_seconds(now)?;
+        let luma = qr::rgba_to_luma(rgba).map_err(import_error)?;
+        let width = usize::try_from(width).map_err(err)?;
+        let height = usize::try_from(height).map_err(err)?;
+        let codes = qr::decode_luma(width, height, &luma).map_err(import_error)?;
+
+        let mut view = ScanView {
+            found: codes.len(),
+            unsupported: 0,
+            added: 0,
+            duplicates: 0,
+            skipped: 0,
+        };
+        for content in &codes {
+            let content = content.trim();
+            let (accounts, skipped) = if let Ok(account) = OtpAccount::from_uri(content) {
+                (vec![account], 0)
+            } else if let Ok(batch) = google::parse_migration_uri(content) {
+                (batch.accounts, batch.skipped)
+            } else {
+                view.unsupported += 1;
+                continue;
+            };
+            let report = self.store.merge(accounts, now).map_err(err)?;
+            view.added += report.added;
+            view.duplicates += report.duplicates;
+            view.skipped += skipped;
+        }
+        to_json(&view)
     }
 
     /// Rimuove un account. Restituisce `true` se esisteva.

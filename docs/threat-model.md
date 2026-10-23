@@ -45,12 +45,13 @@
 | **I** — Segreti nei log o nei crash report | T2, T4 | A1–A4 | `SecretBytes`/`Key256`/`RecoveryKey` con `Debug` redatto; errori senza dati; nessuna telemetria. | **Implementata (fase 1)** |
 | **I** — Segreti residui in memoria | T3 | A1–A3 | `zeroize` al drop; nella PWA vault e seed restano nella memoria WebAssembly e la UI riceve solo codici; password convertite subito in byte e azzerate (le stringhe JS non sono azzerabili). Best-effort. | **Implementata (fase 2)** |
 | **E** — XSS nella PWA che esfiltra codici | T6, T8 | A1, A7 | CSP `default-src 'none'`, Trusted Types, nessun `{@html}`/`innerHTML` (lint), nessuno script terzo; anche con XSS i seed non sono leggibili da JS (solo i codici correnti). Verificato con test end-to-end. | **Implementata (fase 0, 2)** |
+| **I** — Contenuto dei QR esposto alla UI | T6 | A1 | I QR vengono decodificati nel modulo WebAssembly e aggiunti direttamente al vault: l'URI con il segreto non torna mai a JavaScript; il canvas viene ripulito dopo ogni fotogramma. | **Implementata (fase 2)** |
 | **I** — Vault lasciato aperto | T1 | A1, A7 | Blocco automatico dopo 5 min di inattività o 60 s con pagina nascosta; blocco manuale; la sessione WASM viene liberata. | **Implementata (fase 2)** |
 | **E** — Clickjacking | T8 | A7 | `frame-ancestors 'none'`, `X-Frame-Options: DENY`. | **Implementata (fase 0)** |
 | **S** — Nome del servizio falsificato in un QR (es. caratteri bidirezionali) | T8 | A7 | Rifiuto di caratteri di controllo e override bidirezionali in issuer e nome. | **Implementata (fase 1)** |
 | **T** — File vault manomesso o con parametri KDF malevoli (DoS / downgrade) | T1, T2, T4 | A1, A3 | Header autenticato come AAD; parametri Argon2id validati entro limiti min/max prima della derivazione. | **Implementata (fase 1)** |
 | **E** — Dipendenza compromessa | T6 | tutti | Dipendenze minime, lockfile, `minimumReleaseAge` 7 giorni, `trustPolicy`, nessuno script di install, cargo-deny, CodeQL, action fissate per SHA. | **Implementata (fase 0)** |
-| **E** — Parser di import sfruttato da file malevolo | T8 | A1 | Parser in Rust senza `unsafe`, limiti di dimensione, fuzzing in CI (5 target). | **Implementata (fase 1)** |
+| **E** — Parser di import sfruttato da file malevolo | T8 | A1 | Parser in Rust senza `unsafe`, limiti di dimensione, fuzzing in CI (7 target, inclusi gli importer di file e il decoder QR). | **Implementata (fase 1, 2)** |
 | **D** — Perdita del dispositivo = perdita dei segreti | T1 | A1 | Recovery key offline (implementata), backup cifrato, sync multi-dispositivo. | **Parziale (fase 1)**; sync in fase 5 |
 | **D** — Codice OTP errato per orologio sbagliato | — | A7 | Avviso se l'orologio di sistema diverge; tolleranza solo lato verificatore. | Pianificata (fase 2) |
 

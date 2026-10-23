@@ -15,6 +15,7 @@
   let sealed: Uint8Array | null = null;
   let session = $state<Session | null>(null);
   let stopAutoLock: (() => void) | null = null;
+  let recovered = $state(false);
 
   onMount(async () => {
     try {
@@ -60,12 +61,38 @@
     enter(withPassword(password, (bytes) => Session.open(file, bytes)));
   }
 
+  async function recover(recoveryKey: string) {
+    await paint();
+    const file = sealed;
+    if (!file) {
+      throw new Error("Nessun vault salvato");
+    }
+    enter(Session.open_recovery(file, recoveryKey));
+    recovered = true;
+  }
+
+  /** Verifica la password attuale (per operazioni sensibili) aprendo una copia del vault. */
+  async function verify(password: string): Promise<boolean> {
+    await paint();
+    const file = sealed;
+    if (!file) {
+      return false;
+    }
+    try {
+      withPassword(password, (bytes) => Session.open(file, bytes)).free();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function lock() {
     stopAutoLock?.();
     stopAutoLock = null;
     // Libera la memoria WebAssembly: le chiavi vengono azzerate dal core.
     session?.free();
     session = null;
+    recovered = false;
     screen = sealed ? "locked" : "setup";
   }
 </script>
@@ -79,8 +106,14 @@
   {:else if screen === "setup"}
     <Setup oncreate={create} />
   {:else if screen === "locked"}
-    <Unlock onunlock={unlock} />
+    <Unlock onunlock={unlock} onrecover={recover} />
   {:else if session}
-    <Vault {session} onchange={persist} onlock={lock} />
+    {#if recovered}
+      <p class="notice" role="alert">
+        Hai aperto il vault con la recovery key: imposta subito una nuova password in
+        «Impostazioni».
+      </p>
+    {/if}
+    <Vault {session} onchange={persist} onlock={lock} {verify} />
   {/if}
 </main>

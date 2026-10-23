@@ -61,3 +61,10 @@ path = "fuzz_targets/file_importers.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "qr_decode"
+path = "fuzz_targets/qr_decode.rs"
+test = false
+doc = false
+bench = false

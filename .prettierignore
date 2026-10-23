@@ -8,3 +8,4 @@ LICENSE
 # Test vector di terze parti: devono restare identici agli originali.
 **/tests/data/
 apps/web/src/wasm/
+**/e2e/fixtures/

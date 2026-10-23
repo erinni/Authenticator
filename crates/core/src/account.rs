@@ -173,14 +173,17 @@ impl OtpAccount {
 
         let label = percent_decode(label, false)?;
         reject_unsafe_chars(&label)?;
-        let (label_issuer, name) = match label.split_once(':') {
-            Some((issuer, name)) => (Some(issuer), name),
-            None => (None, label.as_str()),
+        let issuer_param = get("issuer").filter(|i| !i.trim().is_empty());
+        // Se l'etichetta inizia con il parametro `issuer` (che può contenere `:`), il nome
+        // è quel che segue; altrimenti si divide al primo `:`.
+        let prefixed = issuer_param.and_then(|i| label.strip_prefix(i)?.strip_prefix(':'));
+        let (label_issuer, name) = match (prefixed, label.split_once(':')) {
+            (Some(name), _) => (issuer_param, name),
+            (None, Some((issuer, name))) => (Some(issuer), name),
+            (None, None) => (None, label.as_str()),
         };
         // Il parametro `issuer` prevale sul prefisso dell'etichetta.
-        let issuer = get("issuer")
-            .filter(|i| !i.trim().is_empty())
-            .or(label_issuer);
+        let issuer = issuer_param.or(label_issuer);
         Self::new(issuer, name, kind, algorithm, digits, secret)
     }
 
@@ -196,6 +199,8 @@ impl OtpAccount {
         };
         let label = match &self.issuer {
             Some(issuer) => format!("{}:{}", percent_encode(issuer), percent_encode(&self.name)),
+            // Prefisso vuoto: un `:` nel nome non deve diventare un issuer al reimport.
+            None if self.name.contains(':') => format!(":{}", percent_encode(&self.name)),
             None => percent_encode(&self.name),
         };
         let issuer_param = self
@@ -383,6 +388,23 @@ mod tests {
         let a = OtpAccount::from_uri(uri).unwrap();
         assert_eq!(a.name, "mário+x@example.com");
         assert_eq!(OtpAccount::from_uri(&a.to_uri()).unwrap(), a);
+    }
+
+    #[test]
+    fn colons_survive_export() {
+        for uri in [
+            "otpauth://totp/:a:b?secret=JBSWY3DPEHPK3PXP",
+            "otpauth://totp/a%3Ab:y?secret=JBSWY3DPEHPK3PXP&issuer=a:b",
+            "otpauth://totp/x:y?secret=JBSWY3DPEHPK3PXP&issuer=a:b",
+        ] {
+            let account = OtpAccount::from_uri(uri).unwrap();
+            assert_eq!(OtpAccount::from_uri(&account.to_uri()).unwrap(), account);
+        }
+        let a = OtpAccount::from_uri("otpauth://totp/:a:b?secret=JBSWY3DPEHPK3PXP").unwrap();
+        assert_eq!((a.issuer.as_deref(), a.name.as_str()), (None, "a:b"));
+        let a = OtpAccount::from_uri("otpauth://totp/a:b:y?secret=JBSWY3DPEHPK3PXP&issuer=a:b")
+            .unwrap();
+        assert_eq!((a.issuer.as_deref(), a.name.as_str()), (Some("a:b"), "y"));
     }
 
     proptest! {

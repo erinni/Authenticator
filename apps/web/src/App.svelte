@@ -5,6 +5,7 @@
   import Vault from "./components/Vault.svelte";
   import { startAutoLock } from "./lib/auto-lock";
   import { core, errorMessage, initCore } from "./lib/core";
+  import { unlockSecret } from "./lib/passkey";
   import { passwordBytes } from "./lib/secret-input";
   import { loadVault, requestPersistence, saveVault } from "./lib/storage";
 
@@ -15,11 +16,14 @@
   let sealed: Uint8Array | null = null;
   let stopAutoLock: (() => void) | null = null;
   let recovered = $state(false);
+  /** Id degli slot passkey del vault salvato (dall'header, senza sbloccarlo). */
+  let passkeys = $state<string[]>([]);
 
   onMount(async () => {
     try {
       initCore();
       sealed = await loadVault();
+      await readPasskeys();
       screen = sealed ? "locked" : "setup";
     } catch (e) {
       fatal = errorMessage(e);
@@ -35,9 +39,14 @@
     return sealed.slice();
   }
 
+  async function readPasskeys() {
+    passkeys = sealed ? await core.externalSlots(savedVault()) : [];
+  }
+
   async function persist() {
     sealed = await core.seal();
     await saveVault(sealed);
+    await readPasskeys();
   }
 
   function enter() {
@@ -54,6 +63,12 @@
 
   async function unlock(password: string) {
     await core.open(savedVault(), passwordBytes(password));
+    enter();
+  }
+
+  async function unlockPasskey() {
+    const { slotId, secret } = await unlockSecret(passkeys);
+    await core.openExternal(savedVault(), slotId, secret);
     enter();
   }
 
@@ -86,7 +101,7 @@
   {:else if screen === "setup"}
     <Setup oncreate={create} />
   {:else if screen === "locked"}
-    <Unlock onunlock={unlock} onrecover={recover} />
+    <Unlock onunlock={unlock} onpasskey={unlockPasskey} onrecover={recover} {passkeys} />
   {:else}
     {#if recovered}
       <p class="notice" role="alert">
@@ -94,6 +109,6 @@
         «Impostazioni».
       </p>
     {/if}
-    <Vault onchange={persist} onlock={() => void lock()} {verify} />
+    <Vault onchange={persist} onlock={() => void lock()} {verify} {passkeys} />
   {/if}
 </main>

@@ -8,13 +8,15 @@
   import SecuritySettings from "./SecuritySettings.svelte";
   import { core, type AccountView, type TotpView } from "../lib/core";
   import { nowSeconds } from "../lib/format";
+  import { matches } from "../lib/search";
 
   interface Props {
     onchange: () => Promise<void>;
     onlock: () => void;
     verify: (password: string) => Promise<boolean>;
+    passkeys: readonly string[];
   }
-  const { onchange, onlock, verify }: Props = $props();
+  const { onchange, onlock, verify, passkeys }: Props = $props();
 
   const TABS = [
     { id: "codes", label: "Codici" },
@@ -25,6 +27,8 @@
 
   let list = $state<AccountView[]>([]);
   let codes = $state<Record<string, TotpView>>({});
+  let query = $state("");
+  const visible = $derived(list.filter((account) => matches(account, query)));
 
   async function refresh() {
     list = await core.accounts();
@@ -85,8 +89,20 @@
     {#if list.length === 0}
       <p class="hint">Nessun account. Aggiungine uno dalla scheda «Aggiungi».</p>
     {:else}
+      <input
+        class="search"
+        type="search"
+        placeholder="Cerca"
+        aria-label="Cerca account"
+        autocomplete="off"
+        spellcheck="false"
+        bind:value={query}
+      />
+      {#if visible.length === 0}
+        <p class="hint" role="status">Nessun account corrisponde a «{query}».</p>
+      {/if}
       <ul class="accounts">
-        {#each list as account (account.id)}
+        {#each visible as account (account.id)}
           <AccountCard
             {account}
             current={codes[account.id] ?? null}
@@ -104,7 +120,7 @@
     </div>
   {:else}
     <div class="panels">
-      <SecuritySettings {verify} onchange={changed} />
+      <SecuritySettings {verify} onchange={changed} {passkeys} />
       <BackupPanel onchange={changed} />
     </div>
   {/if}

@@ -443,6 +443,22 @@ impl Vault {
         // Sposta il Vec fuori dal wrapper senza copiarne il contenuto.
         Ok((vault, SecretBytes::new(core::mem::take(&mut *payload))))
     }
+
+    /// Tipi di slot di un file vault, letti dall'header **senza** sbloccarlo.
+    ///
+    /// Serve alla UI per proporre i metodi di sblocco disponibili (es. passkey). L'header
+    /// qui non è ancora autenticato: il risultato è solo un suggerimento, e un file
+    /// manomesso viene comunque rifiutato da [`Vault::open`].
+    ///
+    /// # Errors
+    /// [`Error::InvalidFormat`] / [`Error::UnsupportedVersion`] per file non validi.
+    pub fn peek_slots(file: &[u8]) -> Result<Vec<SlotKind>> {
+        if file.len() > MAX_FILE_LEN {
+            return Err(Error::InvalidFormat);
+        }
+        let (slots, _) = parse_header(file)?;
+        Ok(slots.iter().map(|s| s.kind).collect())
+    }
 }
 
 fn parse_header(file: &[u8]) -> Result<(Vec<Slot>, usize)> {
@@ -657,6 +673,14 @@ mod tests {
             Vault::open(&file, Credential::Recovery(&rk)).unwrap_err(),
             Error::NoMatchingSlot
         );
+    }
+
+    #[test]
+    fn peek_slots_reads_header_without_unlocking() {
+        let (vault, _) = vault_with_all_slots();
+        let file = vault.seal(b"x").unwrap();
+        assert_eq!(Vault::peek_slots(&file).unwrap(), vault.slots());
+        assert_eq!(Vault::peek_slots(b"AUTHVLT"), Err(Error::InvalidFormat));
     }
 
     #[test]

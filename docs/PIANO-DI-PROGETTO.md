@@ -234,13 +234,15 @@ Dettagli in `docs/adr/`.
   - [x] Import da Google Authenticator, Aegis, 2FAS, andOTP (anche cifrati), verificato su export reali
   - [x] Backup cifrato su file ed export `otpauth://`
   - [x] Fuzzing (6 target) in CI, property test, test di compatibilità del formato, vettori Wycheproof
-- [~] **Fase 2 — Web PWA** (in corso):
+- [x] **Fase 2 — Web PWA** (completata):
   - [x] Binding WebAssembly (`crates/wasm`): vault e segreti solo nella memoria WASM, la UI riceve solo metadati e codici
   - [x] Vault cifrato in IndexedDB, creazione/sblocco con password, elenco con codici TOTP/HOTP, aggiunta da URI
   - [x] Blocco automatico (inattività e pagina nascosta), pulizia degli appunti, test end-to-end con CSP di produzione
-  - [ ] Sblocco con passkey (WebAuthn PRF)
+  - [x] Sblocco con passkey (WebAuthn PRF): slot esterno del vault con id = hash dell'id della credenziale, nessun dato aggiuntivo salvato in chiaro; la password resta sempre valida
   - [x] Recovery key e cambio password dalla UI, con ri-autenticazione
   - [x] Scansione QR da fotocamera e immagine (decodifica in Rust/WASM con `rqrr`, fuzzing), import da altre app e backup cifrato dalla UI
   - [x] Test end-to-end Playwright in CI con la CSP di produzione (fotocamera simulata inclusa)
   - [x] Core in un Web Worker (Argon2 non blocca l'interfaccia), policy Trusted Types per gli URL dei worker
   - [x] Service Worker per l'uso offline (cache generata alla build) e manifest per l'installazione
+  - [x] Ricerca nell'elenco (senza distinguere maiuscole e accenti) e icone generate in locale (iniziale e colore dall'issuer, nessun download esterno)
+- [ ] **Fase 3 — Desktop** (prossima): Tauri 2, keychain/Windows Hello/Touch ID, auto-update firmato, scansione QR da schermo.

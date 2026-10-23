@@ -5,6 +5,7 @@
 //! né le chiavi. I risultati strutturati sono serializzati in JSON.
 
 use authenticator_core::otp::Digits;
+use authenticator_core::vault::SlotKind;
 use authenticator_core::{
     Credential, EntryId, KdfParams, OtpAccount, OtpKind, RecoveryKey, Store, Vault, backup,
 };
@@ -385,6 +386,17 @@ impl Session {
         self.vault.set_external(id, secret).map_err(err)
     }
 
+    /// Rimuove lo slot esterno con l'id indicato (es. passkey revocata).
+    ///
+    /// # Errors
+    /// Id non di 16 byte o slot inesistente.
+    pub fn remove_external(&mut self, id: &[u8]) -> Result<(), JsError> {
+        let id: [u8; 16] = id
+            .try_into()
+            .map_err(|_| JsError::new("id slot non valido"))?;
+        self.vault.remove_external(id).map_err(err)
+    }
+
     /// Backup cifrato con una password dedicata (formato `.authbackup`).
     ///
     /// # Errors
@@ -421,6 +433,26 @@ impl Session {
     }
 }
 
+fn external_ids(slots: &[SlotKind]) -> Vec<String> {
+    slots
+        .iter()
+        .filter_map(|kind| match kind {
+            SlotKind::External(id) => Some(format_id(id)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Id (esadecimali, JSON) degli slot esterni di un vault salvato, **senza** sbloccarlo:
+/// la UI li usa per proporre lo sblocco con passkey.
+///
+/// # Errors
+/// File non valido.
+#[wasm_bindgen]
+pub fn external_slots(file: &[u8]) -> Result<String, JsError> {
+    to_json(&external_ids(&Vault::peek_slots(file).map_err(err)?))
+}
+
 fn split(imported: authenticator_import::Imported) -> (Vec<OtpAccount>, usize) {
     (imported.accounts, imported.skipped)
 }
@@ -442,6 +474,12 @@ mod tests {
     fn ids_roundtrip() {
         let id = [0xab; 16];
         assert_eq!(parse_id(&format_id(&id)).ok(), Some(id));
+    }
+
+    #[test]
+    fn external_ids_only_lists_external_slots() {
+        let slots = [SlotKind::Recovery, SlotKind::External([1; 16])];
+        assert_eq!(external_ids(&slots), vec!["01".repeat(16)]);
     }
 
     #[test]

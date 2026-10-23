@@ -73,4 +73,5 @@ pub(crate) fn new_slot_id() -> Result<SlotId, String> {
 }
 
 /// Nome dell'applicazione negli archivi di sistema.
+#[cfg(any(windows, target_os = "linux"))]
 const APP_ID: &str = "io.github.erinni.authenticator";

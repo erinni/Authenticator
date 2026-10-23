@@ -55,6 +55,8 @@ jobs:
     name: CodeQL (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
+      # Richiesto da CodeQL per leggere i dettagli del workflow run nelle repository private.
+      actions: read
       contents: read
       security-events: write
     strategy:

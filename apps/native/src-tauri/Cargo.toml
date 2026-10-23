@@ -23,6 +23,8 @@ serde = { version = "1.0.229", default-features = false, features = ["derive", "
 tauri = { version = "2.12.5", default-features = false, features = ["wry", "compression", "common-controls-v6", "x11"] }
 getrandom = "0.4.3"
 zeroize = "1.9.1"
+# Appunti: senza le funzioni per le immagini.
+arboard = { version = "3.7.0", default-features = false }
 
 # Sblocco con il sistema: Windows Hello (chiave nel TPM) e Secret Service su Linux.
 [target.'cfg(windows)'.dependencies]
@@ -30,6 +32,14 @@ windows = { version = "0.62.2", features = ["Foundation", "Security_Credentials"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 secret-service = { version = "5.2.0", default-features = false, features = ["rt-tokio-crypto-rust"] }
+# Cattura dello schermo tramite il portale XDG (Wayland e X11).
+ashpd = { version = "0.13.13", default-features = false, features = ["tokio", "screenshot"] }
+png = "0.18.1"
+url = "2.5.8"
+
+# Cattura diretta dei monitor su Windows e macOS.
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+xcap = "0.9.8"
 
 [lints]
 workspace = true

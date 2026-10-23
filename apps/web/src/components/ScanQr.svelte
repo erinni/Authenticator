@@ -4,6 +4,7 @@
   import { nowSeconds } from "../lib/format";
   import { friendlyError, importSummary } from "../lib/messages";
   import { grabFrame } from "../lib/qr-frame";
+  import { SCREEN_CANCELLED, scanScreen } from "../lib/screen-scan";
 
   interface Props {
     onchange: () => Promise<void>;
@@ -17,6 +18,7 @@
   let scanning = $state(false);
   let status = $state<string | null>(null);
   let error = $state<string | null>(null);
+  let capturing = $state(false);
 
   let busy = false;
 
@@ -120,6 +122,35 @@
     }
   }
 
+  async function fromScreen() {
+    if (!scanScreen) {
+      return;
+    }
+    error = null;
+    status = null;
+    capturing = true;
+    try {
+      const view = await scanScreen(nowSeconds());
+      if (view.found === 0) {
+        error = "Nessun QR code trovato sullo schermo: assicurati che sia visibile e riprova.";
+      } else if (view.added + view.duplicates + view.skipped === 0) {
+        status = "Il QR non contiene un account 2FA.";
+      } else {
+        status = importSummary(view);
+        if (view.added > 0) {
+          await onchange();
+        }
+      }
+    } catch (e) {
+      const message = errorMessage(e);
+      if (message !== SCREEN_CANCELLED) {
+        error = friendlyError(message);
+      }
+    } finally {
+      capturing = false;
+    }
+  }
+
   onDestroy(stopCamera);
 </script>
 
@@ -130,6 +161,11 @@
     QR di esportazione di Google Authenticator.
   </p>
   <div class="row">
+    {#if scanScreen}
+      <button onclick={fromScreen} disabled={capturing}>
+        {capturing ? "Cattura in corso…" : "Scansiona dallo schermo"}
+      </button>
+    {/if}
     {#if scanning}
       <button class="ghost" onclick={stopCamera}>Ferma la fotocamera</button>
     {:else}

@@ -251,5 +251,5 @@ Dettagli in `docs/adr/`.
   - [x] CI su Linux, Windows e macOS con installer non firmati
   - [x] Sblocco di sistema: Windows Hello (anche con il solo PIN) e portachiavi della sessione su Linux (con avviso: senza biometria)
   - [ ] Touch ID su macOS (richiede la firma Developer ID)
-  - [ ] Scansione QR da schermo, blocco alla sospensione o al blocco del sistema, appunti
+  - [x] Scansione QR dallo schermo (nel processo nativo), blocco alla ripresa dalla sospensione e con la finestra ridotta a icona, appunti nativi esclusi dalla cronologia
   - [ ] Auto-update firmato e installer firmati e notarizzati

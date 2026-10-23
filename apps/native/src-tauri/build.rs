@@ -37,5 +37,8 @@ const fn authenticator_commands() -> &'static [&'static str] {
         "enable_platform_unlock",
         "unlock_with_platform",
         "disable_platform_unlock",
+        "scan_screen",
+        "copy_code",
+        "watch_lock",
     ]
 }

@@ -41,3 +41,11 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 overflow-checks = true
+
+# Argon2 con i parametri di produzione è molto lento senza ottimizzazioni:
+# ottimizziamo queste dipendenze anche in dev/test, così i test usano i parametri reali.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3

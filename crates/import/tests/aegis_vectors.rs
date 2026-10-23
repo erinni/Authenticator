@@ -4,7 +4,12 @@
 //! contengono gli stessi account di `plain.txt`: ogni account importato deve essere
 //! identico a quello ottenuto interpretando il corrispondente URI `otpauth://`.
 
-#![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)] // codice di test
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)] // codice di test
 
 use authenticator_core::OtpAccount;
 use authenticator_import::{ImportError, Imported, aegis, andotp, twofas};
@@ -34,7 +39,8 @@ fn check(imported: &Imported, expected_count: usize) {
         let expected = reference
             .iter()
             .find(|r| r.secret == account.secret)
-            .unwrap_or_else(|| panic!("segreto sconosciuto per {:?}", account.name));
+            // Nessun dato dell'account nel messaggio: i messaggi di errore finiscono nei log.
+            .expect("account importato con un segreto che non è tra quelli di riferimento");
         assert_eq!(account, expected);
         // Stesso codice generato, a riprova che i parametri coincidono.
         if let Ok(code) = expected.totp_at(1_700_000_000) {

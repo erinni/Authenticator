@@ -9,6 +9,7 @@
 //! copie intermedie create dalla deserializzazione IPC non sono sotto il nostro
 //! controllo, come le stringhe JavaScript lato UI.
 
+mod platform_unlock;
 mod storage;
 
 use std::path::PathBuf;
@@ -65,13 +66,13 @@ mod commands {
 
     use authenticator_session::{
         AccountView, CodeView, ImportView, ScanView, Session,
-        external_slots as peek_external_slots, unix_seconds,
+        external_slots as peek_external_slots, parse_id, unix_seconds,
     };
     use tauri::State;
     use tauri::ipc::{InvokeBody, Request, Response};
     use zeroize::Zeroizing;
 
-    use super::{CommandResult, Core, KDF, secret, storage, text};
+    use super::{CommandResult, Core, KDF, platform_unlock, secret, storage, text};
 
     /// Vault cifrato salvato (vuoto se non esiste ancora: un vault reale non lo è mai).
     #[tauri::command(async)]
@@ -267,6 +268,57 @@ mod commands {
         let now = unix_seconds(now).map_err(text)?;
         core.with(|s| s.restore_backup(&data, &password, now))
     }
+
+    /// Sblocco di sistema disponibile su questo computer (`null` se nessuno).
+    #[tauri::command]
+    pub(super) async fn platform_unlock() -> Option<platform_unlock::Method> {
+        platform_unlock::method().await
+    }
+
+    /// Aggiunge al vault sbloccato uno slot sbloccabile con il sistema. Il segreto resta
+    /// nel processo nativo; la UI salva poi il vault come dopo ogni modifica.
+    #[tauri::command]
+    pub(super) async fn enable_platform_unlock(core: State<'_, Core>) -> CommandResult<()> {
+        // Prima di chiedere PIN o impronta: il vault deve essere aperto.
+        core.with(|_| Ok(()))?;
+        let slot = platform_unlock::new_slot_id()?;
+        let secret = platform_unlock::enroll(slot).await?;
+        if let Err(e) = core.with(|s| s.set_external(&slot, &secret)) {
+            // Slot non aggiunto: il segreto appena creato non serve più.
+            let _ = platform_unlock::forget(slot).await;
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// Apre il vault con il primo slot esterno che ha un segreto su questo dispositivo.
+    #[tauri::command]
+    pub(super) async fn unlock_with_platform(
+        file: Vec<u8>,
+        core: State<'_, Core>,
+    ) -> CommandResult<()> {
+        // Gli slot si leggono dal file, non dalla UI.
+        for id in peek_external_slots(&file).map_err(text)? {
+            let slot = parse_id(&id).map_err(text)?;
+            if let Some(secret) = platform_unlock::secret(slot).await? {
+                let session = Session::open_external(&file, &slot, &secret, KDF).map_err(text)?;
+                core.replace(Some(session));
+                return Ok(());
+            }
+        }
+        Err("Lo sblocco di sistema non è attivo per questo vault su questo computer.".into())
+    }
+
+    /// Rimuove uno slot dal vault sbloccato ed elimina il suo segreto dal sistema.
+    #[tauri::command]
+    pub(super) async fn disable_platform_unlock(
+        slot_id: String,
+        core: State<'_, Core>,
+    ) -> CommandResult<()> {
+        let slot = parse_id(&slot_id).map_err(text)?;
+        core.with(|s| s.remove_external(&slot))?;
+        platform_unlock::forget(slot).await
+    }
 }
 
 /// Avvia l'app.
@@ -307,6 +359,10 @@ pub fn run() -> tauri::Result<()> {
             commands::remove_external,
             commands::export_backup,
             commands::restore_backup,
+            commands::platform_unlock,
+            commands::enable_platform_unlock,
+            commands::unlock_with_platform,
+            commands::disable_platform_unlock,
         ])
         .run(tauri::generate_context!())
 }

@@ -249,6 +249,7 @@ Dettagli in `docs/adr/`.
   - [x] App Tauri 2 (`apps/native`) con il core nativo e la UI della PWA; vault su file con scrittura atomica; solo i comandi del core esposti alla webview
   - [x] Sessione condivisa tra PWA e app native (`crates/session`)
   - [x] CI su Linux, Windows e macOS con installer non firmati
-  - [ ] Sblocco con keychain di sistema: Touch ID, Windows Hello, Secret Service
+  - [x] Sblocco di sistema: Windows Hello (anche con il solo PIN) e portachiavi della sessione su Linux (con avviso: senza biometria)
+  - [ ] Touch ID su macOS (richiede la firma Developer ID)
   - [ ] Scansione QR da schermo, blocco alla sospensione o al blocco del sistema, appunti
   - [ ] Auto-update firmato e installer firmati e notarizzati

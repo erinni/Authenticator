@@ -1,20 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { core, errorMessage } from "../lib/core";
-  import { PasskeyError, fromHex, passkeySupported, registerPasskey } from "../lib/passkey";
+  import { type UnlockOption, enroll, removeSlot, unlockOption } from "../lib/external-unlock";
+  import { UnlockError } from "../lib/unlock-error";
   import { checkNewPassword, passwordBytes } from "../lib/secret-input";
 
   interface Props {
     verify: (password: string) => Promise<boolean>;
     onchange: () => Promise<void>;
-    /** Id degli slot passkey del vault. */
-    passkeys: readonly string[];
+    /** Id degli slot esterni del vault (passkey o sblocco di sistema). */
+    externalSlots: readonly string[];
   }
-  const { verify, onchange, passkeys }: Props = $props();
+  const { verify, onchange, externalSlots }: Props = $props();
 
-  let passkeyAvailable = $state(false);
+  let option = $state<UnlockOption | null>(null);
   onMount(async () => {
-    passkeyAvailable = await passkeySupported();
+    option = await unlockOption();
   });
 
   let recoveryKey = $state<string | null>(null);
@@ -57,40 +58,41 @@
     }
   }
 
-  async function addPasskey(event: SubmitEvent) {
+  async function addExternal(event: SubmitEvent) {
     event.preventDefault();
+    if (!option) {
+      return;
+    }
     error = message = null;
     busy = true;
     try {
       if (await reauthenticated()) {
-        const { slotId, secret } = await registerPasskey();
-        await core.setExternal(slotId, secret);
+        await enroll();
         await onchange();
-        message = "Passkey aggiunta: ora puoi sbloccare il vault anche con questa passkey.";
+        message = option.texts.added;
       }
     } catch (e) {
-      error = e instanceof PasskeyError ? e.message : errorMessage(e);
+      error = e instanceof UnlockError ? e.message : errorMessage(e);
     } finally {
       busy = false;
     }
   }
 
-  async function removePasskey(id: string) {
+  async function removeExternal(id: string) {
+    if (!option) {
+      return;
+    }
     error = message = null;
-    if (
-      !confirm(
-        "Rimuovere questa passkey? Non potrà più sbloccare il vault. La passkey resta salvata nel dispositivo: puoi eliminarla dalle sue impostazioni.",
-      )
-    ) {
+    if (!confirm(option.texts.removeConfirm)) {
       return;
     }
     busy = true;
     try {
-      await core.removeExternal(fromHex(id));
+      await removeSlot(id);
       await onchange();
-      message = "Passkey rimossa.";
+      message = option.texts.removed;
     } catch (e) {
-      error = errorMessage(e);
+      error = e instanceof UnlockError ? e.message : errorMessage(e);
     } finally {
       busy = false;
     }
@@ -145,37 +147,38 @@
       <button type="submit" disabled={busy}>Genera recovery key</button>
     </form>
 
-    <form class="stack" onsubmit={addPasskey}>
-      <h4>Passkey</h4>
-      {#if passkeyAvailable}
-        <p class="hint">
-          Sblocca il vault con impronta, volto o PIN del dispositivo. La password resta sempre
-          valida. Serve una passkey con l'estensione PRF.
-        </p>
-        {#if passkeys.length > 0}
-          <ul class="passkeys">
-            {#each passkeys as id, i (id)}
-              <li>
-                <span>Passkey {i + 1}</span>
-                <button
-                  type="button"
-                  class="ghost"
-                  disabled={busy}
-                  onclick={() => void removePasskey(id)}>Rimuovi</button
-                >
-              </li>
-            {/each}
-          </ul>
+    {#if option}
+      {@const texts = option.texts}
+      <form class="stack" onsubmit={addExternal}>
+        <h4>{texts.title}</h4>
+        {#if option.available}
+          <p class="hint">{texts.hint}</p>
+          {#if texts.warning}<p class="warning">{texts.warning}</p>{/if}
+          {#if externalSlots.length > 0}
+            <ul class="passkeys">
+              {#each externalSlots as id, i (id)}
+                <li>
+                  <span>{texts.item} {i + 1}</span>
+                  <button
+                    type="button"
+                    class="ghost"
+                    disabled={busy}
+                    onclick={() => void removeExternal(id)}>Rimuovi</button
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <label>
+            Password attuale
+            <input type="password" autocomplete="current-password" bind:value={current} required />
+          </label>
+          <button type="submit" disabled={busy}>{texts.add}</button>
+        {:else}
+          <p class="hint">{texts.unavailable}</p>
         {/if}
-        <label>
-          Password attuale
-          <input type="password" autocomplete="current-password" bind:value={current} required />
-        </label>
-        <button type="submit" disabled={busy}>Aggiungi passkey</button>
-      {:else}
-        <p class="hint">Questo browser non supporta lo sblocco con passkey.</p>
-      {/if}
-    </form>
+      </form>
+    {/if}
 
     <form class="stack" onsubmit={changePassword}>
       <h4>Cambia password</h4>

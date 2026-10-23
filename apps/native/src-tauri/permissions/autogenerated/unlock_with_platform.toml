@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-unlock-with-platform"
+description = "Enables the unlock_with_platform command without any pre-configured scope."
+commands.allow = ["unlock_with_platform"]
+
+[[permission]]
+identifier = "deny-unlock-with-platform"
+description = "Denies the unlock_with_platform command without any pre-configured scope."
+commands.deny = ["unlock_with_platform"]

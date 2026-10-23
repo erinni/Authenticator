@@ -9,6 +9,11 @@ ignore = [
   # proc-macro-error (non mantenuto): macro di compilazione usata da gtk-rs 0.18, tramite
   # Tauri su Linux. Nessun codice a runtime e nessuna alternativa finché Tauri usa GTK 3.
   { id = "RUSTSEC-2024-0370", reason = "macro di build di gtk-rs (Tauri su Linux), nessun aggiornamento disponibile" },
+  # zvariant, zvariant_derive, zbus_names: non più pubblicati a parte perché confluiti in zbus 6.
+  # Nessuna vulnerabilità; arrivano da secret-service (zbus 5), usato su Linux per il portachiavi.
+  { id = "RUSTSEC-2026-0370", reason = "zvariant confluito in zbus 6; secret-service usa ancora zbus 5" },
+  { id = "RUSTSEC-2026-0371", reason = "zbus_names confluito in zbus 6; secret-service usa ancora zbus 5" },
+  { id = "RUSTSEC-2026-0372", reason = "zvariant_derive confluito in zbus 6; secret-service usa ancora zbus 5" },
 ]
 
 [licenses]

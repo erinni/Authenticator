@@ -9,6 +9,8 @@
  * Il segreto passa dalla pagina solo per essere trasferito (e azzerato) nel worker.
  */
 
+import { UnlockError } from "./unlock-error";
+
 /** Input PRF fisso: l'output dipende comunque dalla singola credenziale. */
 const PRF_SALT = new TextEncoder().encode("authenticator/v1/prf/vault-unlock");
 const SLOT_ID_DOMAIN = new TextEncoder().encode("authenticator/v1/passkey-slot");
@@ -22,7 +24,7 @@ export interface PasskeySecret {
 }
 
 /** Errore con un messaggio già pronto per l'utente. */
-export class PasskeyError extends Error {}
+export class PasskeyError extends UnlockError {}
 
 /** `true` se il browser espone WebAuthn e (quando lo dichiara) l'estensione PRF. */
 export async function passkeySupported(): Promise<boolean> {

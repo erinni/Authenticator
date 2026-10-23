@@ -52,6 +52,19 @@ core, come si condivide la UI con la PWA e quali API di sistema sono raggiungibi
   gli appunti sono svuotati solo se contengono ancora quel codice. Se gli appunti di sistema non
   sono raggiungibili si usa l'API web, come nella PWA.
 
+- **Aggiornamenti e release** (aggiornato il 2026-10-23): plugin updater di Tauri, usato solo
+  dal processo nativo (nessun permesso alla webview). Il manifesto `latest.json` sta
+  nell'ultima release pubblicata su GitHub; i pacchetti sono firmati con una chiave minisign
+  del progetto e la firma lega la versione (`requireSignedVersion`). Controllo all'avvio,
+  disattivabile; installazione solo su conferma. La chiave pubblica è incorporata dalla build
+  di release: le build di sviluppo non si aggiornano. Il crate `zip` del plugin è escluso
+  (gli installer di Tauri 2 non sono archivi).
+  - *Firma Windows*: SignPath Foundation, gratuita per i progetti open source. Due richieste
+    per release: prima l'eseguibile, poi gli installer che lo contengono; le firme dell'updater
+    si calcolano sui file finali. Il disinstallatore NSIS, generato durante l'installazione, non
+    è firmato.
+  - *macOS*: non firmato finché non c'è un Developer ID.
+
 ## Alternative considerate
 - **Core WebAssembly anche nella webview**: zero codice nativo, ma i segreti resterebbero nel
   processo della webview e lo sblocco hardware richiederebbe comunque un ponte nativo.
@@ -62,6 +75,8 @@ core, come si condivide la UI con la PWA e quali API di sistema sono raggiungibi
   invece il consenso esplicito.
 - **Eventi di sospensione del sistema** (`WM_POWERBROADCAST`, `NSWorkspace`, logind): tre
   implementazioni da mantenere al posto di un controllo portabile.
+- **`tauri-action` per le release**: comodo, ma firma gli aggiornamenti prima che SignPath
+  firmi gli installer, e le firme dell'updater non corrisponderebbero ai file pubblicati.
 - **Isolation pattern di Tauri**: cifra l'IPC tra webview e core; utile contro script iniettati in
   pagine con contenuti di terzi, che l'app non carica. Da rivalutare in fase 6.
 
@@ -70,4 +85,6 @@ core, come si condivide la UI con la PWA e quali API di sistema sono raggiungibi
   comando e il permesso corrispondenti nell'app Tauri.
 - Su Linux la build richiede WebKitGTK 4.1 e, per la cattura dello schermo, un portale XDG attivo
   (presente in GNOME, KDE e nei desktop basati su wlroots); la CI compila e impacchetta l'app su tutti e tre i sistemi.
-- Firma e notarizzazione degli installer richiedono i certificati di piattaforma (fase 3, release).
+- Firma e notarizzazione degli installer richiedono i certificati di piattaforma: Windows con
+  SignPath Foundation (in attesa di approvazione), macOS con un Developer ID. La procedura di
+  release è in [docs/release.md](../release.md).

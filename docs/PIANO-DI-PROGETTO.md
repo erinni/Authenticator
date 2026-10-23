@@ -252,4 +252,6 @@ Dettagli in `docs/adr/`.
   - [x] Sblocco di sistema: Windows Hello (anche con il solo PIN) e portachiavi della sessione su Linux (con avviso: senza biometria)
   - [ ] Touch ID su macOS (richiede la firma Developer ID)
   - [x] Scansione QR dallo schermo (nel processo nativo), blocco alla ripresa dalla sospensione e con la finestra ridotta a icona, appunti nativi esclusi dalla cronologia
-  - [ ] Auto-update firmato e installer firmati e notarizzati
+  - [x] Aggiornamenti automatici firmati (updater di Tauri, firma legata alla versione) e workflow di release con bozza su GitHub
+  - [ ] Installer Windows firmati con SignPath Foundation (workflow pronto, in attesa dell'approvazione del progetto)
+  - [ ] Firma e notarizzazione su macOS (richiede il Developer ID)

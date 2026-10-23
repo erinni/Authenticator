@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Setup from "./components/Setup.svelte";
   import Unlock from "./components/Unlock.svelte";
+  import Updates from "./components/Updates.svelte";
   import Vault from "./components/Vault.svelte";
   import { startAutoLock } from "./lib/auto-lock";
   import { core, errorMessage, initCore } from "./lib/core";
@@ -93,6 +94,7 @@
 
 <main>
   <h1>Authenticator</h1>
+  <Updates mode="banner" />
   {#if screen === "loading"}
     <p class="hint">Caricamento…</p>
   {:else if screen === "error"}

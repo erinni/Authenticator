@@ -33,6 +33,10 @@
     "allow-disable-platform-unlock",
     "allow-scan-screen",
     "allow-copy-code",
-    "allow-watch-lock"
+    "allow-watch-lock",
+    "allow-check-update",
+    "allow-install-update",
+    "allow-update-auto-check",
+    "allow-set-update-auto-check"
   ]
 }

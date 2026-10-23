@@ -12,6 +12,7 @@ mod crypto;
 pub mod google;
 mod hex;
 mod protobuf;
+pub mod qr;
 pub mod twofas;
 
 use core::fmt;

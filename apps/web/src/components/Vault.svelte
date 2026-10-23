@@ -2,6 +2,10 @@
   import { onDestroy } from "svelte";
   import AccountCard from "./AccountCard.svelte";
   import AddAccount from "./AddAccount.svelte";
+  import BackupPanel from "./BackupPanel.svelte";
+  import ImportPanel from "./ImportPanel.svelte";
+  import ScanQr from "./ScanQr.svelte";
+  import SecuritySettings from "./SecuritySettings.svelte";
   import { accounts, type AccountView, type Session } from "../lib/core";
   import { nowSeconds } from "../lib/format";
 
@@ -9,8 +13,16 @@
     session: Session;
     onchange: () => Promise<void>;
     onlock: () => void;
+    verify: (password: string) => Promise<boolean>;
   }
-  const { session, onchange, onlock }: Props = $props();
+  const { session, onchange, onlock, verify }: Props = $props();
+
+  const TABS = [
+    { id: "codes", label: "Codici" },
+    { id: "add", label: "Aggiungi" },
+    { id: "settings", label: "Impostazioni" },
+  ] as const;
+  let tab = $state<(typeof TABS)[number]["id"]>("codes");
 
   let list = $state<AccountView[]>([]);
   let now = $state(nowSeconds());
@@ -33,6 +45,7 @@
   function add(uri: string) {
     session.add_uri(uri, nowSeconds());
     void changed();
+    tab = "codes";
   }
 
   function hotp(id: string): string {
@@ -52,21 +65,40 @@
 
 <section>
   <header class="toolbar">
-    <h2>I tuoi account</h2>
+    <nav class="tabs" aria-label="Sezioni">
+      {#each TABS as t (t.id)}
+        <button
+          class:active={tab === t.id}
+          aria-current={tab === t.id ? "page" : undefined}
+          onclick={() => (tab = t.id)}
+        >
+          {t.label}
+        </button>
+      {/each}
+    </nav>
     <button class="ghost" onclick={onlock}>Blocca</button>
   </header>
 
-  {#if list.length === 0}
-    <p class="hint">
-      Nessun account. Aggiungine uno incollando il suo URI <code>otpauth://</code>.
-    </p>
+  {#if tab === "codes"}
+    {#if list.length === 0}
+      <p class="hint">Nessun account. Aggiungine uno dalla scheda «Aggiungi».</p>
+    {:else}
+      <ul class="accounts">
+        {#each list as account (account.id)}
+          <AccountCard {session} {account} {now} onhotp={hotp} onremove={remove} />
+        {/each}
+      </ul>
+    {/if}
+  {:else if tab === "add"}
+    <div class="panels">
+      <ScanQr {session} onchange={changed} />
+      <AddAccount onadd={add} />
+      <ImportPanel {session} onchange={changed} />
+    </div>
   {:else}
-    <ul class="accounts">
-      {#each list as account (account.id)}
-        <AccountCard {session} {account} {now} onhotp={hotp} onremove={remove} />
-      {/each}
-    </ul>
+    <div class="panels">
+      <SecuritySettings {session} {verify} onchange={changed} />
+      <BackupPanel {session} onchange={changed} />
+    </div>
   {/if}
-
-  <AddAccount onadd={add} />
 </section>

@@ -20,3 +20,5 @@ coverage/
 *.jks
 *.mobileprovision
 apps/web/src/wasm/
+test-results/
+playwright-report/

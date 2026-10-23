@@ -13,6 +13,13 @@ pub const MAX_PIXELS: usize = 2048 * 2048;
 const MIN_SIDE: usize = 21;
 /// Numero massimo di QR considerati in una singola immagine.
 const MAX_CODES: usize = 8;
+/// Pixel massimi di una schermata, analizzata a riquadri (copre l'8K).
+pub const MAX_SCREEN_PIXELS: usize = 64 * 1024 * 1024;
+/// Lato dei riquadri in cui si divide una schermata grande.
+const TILE_SIDE: usize = 2048;
+/// Sovrapposizione tra riquadri vicini: un QR largo fino a questi pixel sta sempre per
+/// intero in almeno un riquadro.
+const TILE_OVERLAP: usize = 512;
 
 /// Decodifica tutti i QR presenti in un'immagine `width × height` di luminanze (0–255).
 ///
@@ -44,6 +51,61 @@ pub fn decode_luma(
         .filter_map(|grid| grid.decode().ok())
         .map(|(_, content)| Zeroizing::new(content))
         .collect())
+}
+
+/// Come [`decode_luma`], ma accetta immagini fino a [`MAX_SCREEN_PIXELS`] (le schermate
+/// dei monitor 4K o più grandi): oltre [`MAX_PIXELS`] l'immagine è analizzata a riquadri
+/// sovrapposti, così tempo e memoria per riquadro restano quelli di [`decode_luma`].
+/// I QR trovati più volte (nella sovrapposizione) sono restituiti una volta sola.
+///
+/// # Errors
+/// [`ImportError::TooLarge`] oltre [`MAX_SCREEN_PIXELS`]; [`ImportError::InvalidFormat`]
+/// se le dimensioni non corrispondono ai dati.
+pub fn decode_luma_tiled(
+    width: usize,
+    height: usize,
+    luma: &[u8],
+) -> Result<Vec<Zeroizing<String>>, ImportError> {
+    let pixels = width.checked_mul(height).ok_or(ImportError::TooLarge)?;
+    if pixels > MAX_SCREEN_PIXELS {
+        return Err(ImportError::TooLarge);
+    }
+    if pixels != luma.len() {
+        return Err(ImportError::InvalidFormat);
+    }
+    if pixels <= MAX_PIXELS {
+        return decode_luma(width, height, luma);
+    }
+    let mut found: Vec<Zeroizing<String>> = Vec::new();
+    let mut tile = Zeroizing::new(Vec::with_capacity(TILE_SIDE * TILE_SIDE));
+    for top in tile_starts(height) {
+        for left in tile_starts(width) {
+            let tile_width = TILE_SIDE.min(width - left);
+            let tile_height = TILE_SIDE.min(height - top);
+            tile.clear();
+            for row in luma.chunks_exact(width).skip(top).take(tile_height) {
+                let part = row
+                    .get(left..left + tile_width)
+                    .ok_or(ImportError::InvalidFormat)?;
+                tile.extend_from_slice(part);
+            }
+            for code in decode_luma(tile_width, tile_height, &tile)? {
+                if found.len() < MAX_CODES && !found.contains(&code) {
+                    found.push(code);
+                }
+            }
+        }
+    }
+    Ok(found)
+}
+
+/// Posizioni iniziali dei riquadri lungo un lato di `len` pixel; l'ultimo riquadro è
+/// allineato al bordo.
+fn tile_starts(len: usize) -> impl Iterator<Item = usize> {
+    let last = len.saturating_sub(TILE_SIDE);
+    (0..last)
+        .step_by(TILE_SIDE - TILE_OVERLAP)
+        .chain(core::iter::once(last))
 }
 
 /// Converte un'immagine RGBA (come `ImageData` del browser) in luminanze.
@@ -111,6 +173,58 @@ mod tests {
         );
         assert_eq!(decode_luma(5000, 5000, &[]), Err(ImportError::TooLarge));
         assert_eq!(decode_luma(usize::MAX, 2, &[]), Err(ImportError::TooLarge));
+    }
+
+    /// Copia `qr` (quadrato di lato `side`) in una schermata bianca alla posizione data.
+    fn screen(width: usize, height: usize, qr: &[(usize, usize, &[u8], usize)]) -> Vec<u8> {
+        let mut luma = vec![255u8; width * height];
+        for &(x, y, code, side) in qr {
+            for row in 0..side {
+                let start = (y + row) * width + x;
+                luma[start..start + side].copy_from_slice(&code[row * side..(row + 1) * side]);
+            }
+        }
+        luma
+    }
+
+    #[test]
+    fn tiled_decoding_finds_codes_anywhere_on_large_screens() {
+        let first = "otpauth://totp/ACME:mario?secret=JBSWY3DPEHPK3PXP&issuer=ACME";
+        let second = "otpauth://totp/Example:anna?secret=KRSXG5CTMVRXEZLU&issuer=Example";
+        let (side_a, qr_a) = render(first, 4);
+        let (side_b, qr_b) = render(second, 3);
+        let (width, height) = (3840, 2160);
+        // Il primo QR è a cavallo del bordo tra due riquadri, il secondo in basso a destra.
+        let luma = screen(
+            width,
+            height,
+            &[
+                (1900, 1000, &qr_a, side_a),
+                (width - side_b - 10, height - side_b - 10, &qr_b, side_b),
+            ],
+        );
+        let found = decode_luma_tiled(width, height, &luma).unwrap();
+        let mut found: Vec<&str> = found.iter().map(|code| code.as_str()).collect();
+        found.sort_unstable();
+        assert_eq!(found, vec![first, second]);
+    }
+
+    #[test]
+    fn tiled_decoding_limits() {
+        let uri = "otpauth://totp/ACME:mario?secret=JBSWY3DPEHPK3PXP&issuer=ACME";
+        let (side, qr) = render(uri, 4);
+        let luma = screen(300, 300, &[(10, 10, &qr, side)]);
+        assert_eq!(decode_luma_tiled(300, 300, &luma).unwrap().len(), 1);
+        assert_eq!(
+            decode_luma_tiled(16_384, 8_192, &[]),
+            Err(ImportError::TooLarge)
+        );
+        assert_eq!(
+            decode_luma_tiled(4000, 3000, &[0; 10]),
+            Err(ImportError::InvalidFormat)
+        );
+        assert_eq!(tile_starts(100).collect::<Vec<_>>(), vec![0]);
+        assert_eq!(tile_starts(3840).collect::<Vec<_>>(), vec![0, 1536, 1792]);
     }
 
     #[test]

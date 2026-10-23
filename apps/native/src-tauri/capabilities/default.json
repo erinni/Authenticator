@@ -30,6 +30,9 @@
     "allow-platform-unlock",
     "allow-enable-platform-unlock",
     "allow-unlock-with-platform",
-    "allow-disable-platform-unlock"
+    "allow-disable-platform-unlock",
+    "allow-scan-screen",
+    "allow-copy-code",
+    "allow-watch-lock"
   ]
 }

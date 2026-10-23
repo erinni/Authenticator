@@ -9,7 +9,10 @@
 //! copie intermedie create dalla deserializzazione IPC non sono sotto il nostro
 //! controllo, come le stringhe JavaScript lato UI.
 
+mod auto_lock;
+mod clipboard;
 mod platform_unlock;
+mod screen;
 mod storage;
 
 use std::path::PathBuf;
@@ -69,10 +72,12 @@ mod commands {
         external_slots as peek_external_slots, parse_id, unix_seconds,
     };
     use tauri::State;
-    use tauri::ipc::{InvokeBody, Request, Response};
+    use tauri::ipc::{Channel, InvokeBody, Request, Response};
     use zeroize::Zeroizing;
 
-    use super::{CommandResult, Core, KDF, platform_unlock, secret, storage, text};
+    use super::auto_lock::LockWatch;
+    use super::clipboard::Clipboard;
+    use super::{CommandResult, Core, KDF, platform_unlock, screen, secret, storage, text};
 
     /// Vault cifrato salvato (vuoto se non esiste ancora: un vault reale non lo è mai).
     #[tauri::command(async)]
@@ -221,6 +226,29 @@ mod commands {
         core.with(|s| s.scan_qr(width, height, rgba, now))
     }
 
+    /// Cattura lo schermo e aggiunge gli account dei QR visibili. La schermata resta
+    /// nel processo nativo e viene azzerata dopo l'analisi.
+    #[tauri::command]
+    pub(super) async fn scan_screen(now: f64, core: State<'_, Core>) -> CommandResult<ScanView> {
+        let now = unix_seconds(now).map_err(text)?;
+        let screens = screen::capture().await?;
+        core.with(|s| s.scan_screens(screens, now))
+    }
+
+    /// Copia un codice negli appunti di sistema; viene rimosso dopo 30 secondi se
+    /// nel frattempo non è stato copiato altro.
+    #[tauri::command(async)]
+    pub(super) fn copy_code(code: String, clipboard: State<'_, Clipboard>) -> CommandResult<()> {
+        clipboard.copy(Zeroizing::new(code))
+    }
+
+    /// Registra il canale su cui l'interfaccia riceve i blocchi automatici del processo
+    /// nativo (sospensione del computer, finestra ridotta a icona).
+    #[tauri::command]
+    pub(super) fn watch_lock(on_lock: Channel<()>, watch: State<'_, LockWatch>) {
+        watch.set(on_lock);
+    }
+
     #[tauri::command(async)]
     pub(super) fn change_password(password: Vec<u8>, core: State<'_, Core>) -> CommandResult<()> {
         let password = secret(password);
@@ -333,6 +361,9 @@ pub fn run() -> tauri::Result<()> {
                 session: Mutex::new(None),
                 vault_path,
             });
+            app.manage(clipboard::Clipboard::default());
+            app.manage(auto_lock::LockWatch::default());
+            auto_lock::start(app.handle().clone())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -363,6 +394,9 @@ pub fn run() -> tauri::Result<()> {
             commands::enable_platform_unlock,
             commands::unlock_with_platform,
             commands::disable_platform_unlock,
+            commands::scan_screen,
+            commands::copy_code,
+            commands::watch_lock,
         ])
         .run(tauri::generate_context!())
 }

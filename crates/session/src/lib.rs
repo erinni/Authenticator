@@ -14,6 +14,7 @@ use authenticator_core::{
 };
 use authenticator_import::{ImportError, aegis, andotp, google, qr, twofas};
 use serde::Serialize;
+use zeroize::Zeroizing;
 
 /// Errore restituito all'interfaccia: un messaggio, oppure un codice stabile
 /// (`duplicate`, `import:*`) che la UI traduce.
@@ -109,6 +110,16 @@ pub struct ScanView {
     pub duplicates: usize,
     /// Account non supportati, ignorati.
     pub skipped: usize,
+}
+
+/// Schermata di un monitor in RGBA, azzerata quando viene rilasciata.
+pub struct Screenshot {
+    /// Larghezza in pixel.
+    pub width: u32,
+    /// Altezza in pixel.
+    pub height: u32,
+    /// Pixel RGBA, riga per riga.
+    pub rgba: Zeroizing<Vec<u8>>,
 }
 
 /// Formati di import da altre app.
@@ -379,11 +390,41 @@ impl Session {
     /// # Errors
     /// Immagine troppo grande o dimensioni non coerenti con i dati.
     pub fn scan_qr(&mut self, width: u32, height: u32, rgba: &[u8], now: u64) -> Result<ScanView> {
-        let luma = qr::rgba_to_luma(rgba).map_err(import_error)?;
+        let luma = Zeroizing::new(qr::rgba_to_luma(rgba).map_err(import_error)?);
         let width = usize::try_from(width).map_err(err)?;
         let height = usize::try_from(height).map_err(err)?;
         let codes = qr::decode_luma(width, height, &luma).map_err(import_error)?;
+        self.add_codes(&codes, now)
+    }
 
+    /// Come [`Session::scan_qr`], per le schermate dei monitor (anche 4K o più grandi).
+    /// Le schermate sono analizzate una alla volta e azzerate subito dopo; un QR visibile
+    /// su più monitor (schermi duplicati) conta una volta sola.
+    ///
+    /// # Errors
+    /// Schermata troppo grande o dimensioni non coerenti con i dati.
+    pub fn scan_screens(
+        &mut self,
+        screens: impl IntoIterator<Item = Screenshot>,
+        now: u64,
+    ) -> Result<ScanView> {
+        let mut codes: Vec<Zeroizing<String>> = Vec::new();
+        for screen in screens {
+            let luma = Zeroizing::new(qr::rgba_to_luma(&screen.rgba).map_err(import_error)?);
+            drop(screen.rgba);
+            let width = usize::try_from(screen.width).map_err(err)?;
+            let height = usize::try_from(screen.height).map_err(err)?;
+            for code in qr::decode_luma_tiled(width, height, &luma).map_err(import_error)? {
+                if !codes.contains(&code) {
+                    codes.push(code);
+                }
+            }
+        }
+        self.add_codes(&codes, now)
+    }
+
+    /// Aggiunge gli account contenuti nei QR decodificati.
+    fn add_codes(&mut self, codes: &[Zeroizing<String>], now: u64) -> Result<ScanView> {
         let mut view = ScanView {
             found: codes.len(),
             unsupported: 0,
@@ -391,7 +432,7 @@ impl Session {
             duplicates: 0,
             skipped: 0,
         };
-        for content in &codes {
+        for content in codes {
             let content = content.trim();
             let (accounts, skipped) = if let Ok(account) = OtpAccount::from_uri(content) {
                 (vec![account], 0)
@@ -528,6 +569,50 @@ mod tests {
 
     fn session(password: &[u8]) -> Session {
         Session::create(password, KdfParams::MINIMUM).unwrap()
+    }
+
+    /// Schermata RGBA bianca `width × height` con un QR (moduli di 4 pixel) in `(x, y)`.
+    fn screenshot(content: &str, width: u32, height: u32, x: usize, y: usize) -> Screenshot {
+        let code = qrcode::QrCode::new(content.as_bytes()).unwrap();
+        let modules = code.width();
+        let w = width as usize;
+        let mut rgba = vec![255u8; w * height as usize * 4];
+        for (i, color) in code.to_colors().iter().enumerate() {
+            if *color == qrcode::Color::Dark {
+                for dy in 0..4 {
+                    let row = y + (i / modules) * 4 + dy;
+                    let start = (row * w + x + (i % modules) * 4) * 4;
+                    for px in rgba[start..start + 16].chunks_exact_mut(4) {
+                        px[..3].fill(0);
+                    }
+                }
+            }
+        }
+        Screenshot {
+            width,
+            height,
+            rgba: Zeroizing::new(rgba),
+        }
+    }
+
+    #[test]
+    fn scans_accounts_from_screens() {
+        let mut s = session(&random_secret(16));
+        // Lo stesso QR su due monitor (schermi duplicati) e su un 4K: un solo account.
+        let screens = [
+            screenshot(URI, 3840, 2160, 2000, 1500),
+            screenshot(URI, 1280, 720, 100, 100),
+            screenshot("https://example.com", 640, 480, 50, 50),
+        ];
+        let view = s.scan_screens(screens, 1_700_000_000).unwrap();
+        assert_eq!((view.found, view.added, view.unsupported), (2, 1, 1));
+        assert_eq!(s.accounts().len(), 1);
+
+        let again = s
+            .scan_screens([screenshot(URI, 640, 480, 50, 50)], 1_700_000_000)
+            .unwrap();
+        assert_eq!((again.added, again.duplicates), (0, 1));
+        assert_eq!(s.scan_screens([], 1_700_000_000).unwrap().found, 0);
     }
 
     #[test]

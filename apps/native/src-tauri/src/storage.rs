@@ -45,7 +45,10 @@ pub(crate) fn save(path: &Path, data: &[u8]) -> io::Result<()> {
         let _ = fs::remove_file(&temp);
     }
     written?;
-    sync_dir(dir)
+    // Rende persistente il `rename` (su Windows non serve e non è supportato).
+    #[cfg(unix)]
+    File::open(dir)?.sync_all()?;
+    Ok(())
 }
 
 fn temp_path(path: &Path) -> PathBuf {
@@ -66,17 +69,6 @@ fn write_synced(path: &Path, data: &[u8]) -> io::Result<()> {
     let mut file = options.open(path)?;
     file.write_all(data)?;
     file.sync_all()
-}
-
-/// Rende persistente il `rename` (su Windows non serve e non è supportato).
-fn sync_dir(dir: &Path) -> io::Result<()> {
-    #[cfg(unix)]
-    {
-        File::open(dir)?.sync_all()?;
-    }
-    #[cfg(not(unix))]
-    let _ = dir;
-    Ok(())
 }
 
 #[cfg(test)]

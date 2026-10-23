@@ -135,14 +135,51 @@ input:focus-visible {
 
 .account {
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "labels code" "actions actions";
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "avatar labels code" "actions actions actions";
   gap: 0.5rem 1rem;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.9rem 1rem;
+}
+.avatar {
+  grid-area: avatar;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #ffffff;
+  background: var(--avatar);
+}
+/* Palette con contrasto ≥ 4.5:1 sul testo bianco (WCAG AA). */
+.hue-0 {
+  --avatar: #b42318;
+}
+.hue-1 {
+  --avatar: #b54708;
+}
+.hue-2 {
+  --avatar: #3f6212;
+}
+.hue-3 {
+  --avatar: #0e7490;
+}
+.hue-4 {
+  --avatar: #1f4fd1;
+}
+.hue-5 {
+  --avatar: #5b21b6;
+}
+.hue-6 {
+  --avatar: #a21caf;
+}
+.hue-7 {
+  --avatar: #475467;
 }
 .labels {
   grid-area: labels;
@@ -299,4 +336,22 @@ video {
   border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 0.75rem;
+}
+
+.passkeys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.passkeys li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search {
+  width: 100%;
+  margin-bottom: 0.75rem;
 }

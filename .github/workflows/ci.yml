@@ -32,7 +32,9 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - name: Build WebAssembly del core
-        run: cargo build -p authenticator-core --target wasm32-unknown-unknown --locked
+        run: cargo build -p authenticator-core -p authenticator-wasm --target wasm32-unknown-unknown --locked
+      - name: Clippy sul target WebAssembly
+        run: cargo clippy -p authenticator-wasm --target wasm32-unknown-unknown --locked -- -D warnings
 
   web:
     name: Web (lint, typecheck, test, build)
@@ -47,6 +49,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Il core WebAssembly serve a typecheck, test e build della PWA.
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+        with:
+          tool: wasm-bindgen@0.2.129
+      - run: pnpm --filter @authenticator/web wasm
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -23,7 +23,8 @@ function bmpToY4m(bmpPath: string): string {
   }
   const chroma = Buffer.alloc((width / 2) * (height / 2), 128);
   const header = `YUV4MPEG2 W${String(width)} H${String(height)} F1:1 Ip A1:1 C420jpeg\nFRAME\n`;
-  const path = join(tmpdir(), "authenticator-qr.y4m");
+  // Cartella temporanea con nome casuale e permessi 0700: nessun percorso prevedibile.
+  const path = join(mkdtempSync(join(tmpdir(), "authenticator-e2e-")), "qr.y4m");
   writeFileSync(path, Buffer.concat([Buffer.from(header), luma, chroma, chroma]));
   return path;
 }

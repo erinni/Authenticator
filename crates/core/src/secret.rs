@@ -82,14 +82,17 @@ impl Key256 {
         &self.0
     }
 
-    /// Accesso in scrittura, per riempire la chiave da una KDF senza copie intermedie.
-    pub(crate) fn expose_mut(&mut self) -> &mut [u8; 32] {
-        &mut self.0
-    }
-
-    /// Chiave azzerata, da riempire con [`Key256::expose_mut`].
-    pub(crate) fn zeroed() -> Self {
-        Self([0; 32])
+    /// Crea una chiave scritta direttamente da `fill` (es. l'output di una KDF), senza
+    /// copie intermedie.
+    ///
+    /// La chiave viene restituita solo se `fill` riesce: un buffer non riempito o
+    /// riempito a metà non può mai essere usato come chiave e viene azzerato al drop.
+    pub(crate) fn try_fill_with<E>(
+        fill: impl FnOnce(&mut [u8; 32]) -> core::result::Result<(), E>,
+    ) -> core::result::Result<Self, E> {
+        let mut key = Self([0; 32]);
+        fill(&mut key.0)?;
+        Ok(key)
     }
 }
 
@@ -129,6 +132,21 @@ mod tests {
         assert!(!format!("{secret:?}").contains("supersegreto"));
         assert!(!format!("{key:?}").contains("41"));
         assert!(!format!("{key:?}").contains("AAAA"));
+    }
+
+    #[test]
+    fn failed_fill_returns_no_key() {
+        let result = Key256::try_fill_with(|buf| {
+            buf[0] = 0xff;
+            Err("kdf fallita")
+        });
+        assert_eq!(result.unwrap_err(), "kdf fallita");
+        let key = Key256::try_fill_with(|buf| {
+            buf.fill(7);
+            Ok::<(), ()>(())
+        })
+        .unwrap();
+        assert_eq!(key.expose(), &[7; 32]);
     }
 
     #[test]

@@ -70,11 +70,8 @@ pub fn open(key: &Key256, aad: &[u8], message: &[u8]) -> Result<Zeroizing<Vec<u8
 /// # Errors
 /// [`Error::Internal`] solo in caso di violazione delle invarianti di HKDF.
 pub fn derive_key(ikm: &[u8], salt: Option<&[u8]>, info: &[u8]) -> Result<Key256> {
-    let mut key = Key256::zeroed();
-    Hkdf::<Sha256>::new(salt, ikm)
-        .expand(info, key.expose_mut())
-        .map_err(|_| Error::Internal)?;
-    Ok(key)
+    let hkdf = Hkdf::<Sha256>::new(salt, ikm);
+    Key256::try_fill_with(|key| hkdf.expand(info, key)).map_err(|_| Error::Internal)
 }
 
 #[cfg(test)]

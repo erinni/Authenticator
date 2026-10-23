@@ -114,11 +114,9 @@ impl KdfParams {
     fn derive(self, password: &[u8], salt: &[u8; SALT_LEN]) -> Result<Key256> {
         let params = Params::new(self.m_cost_kib, self.t_cost, self.p_cost, Some(Key256::LEN))
             .map_err(|_| Error::InvalidKdfParams)?;
-        let mut key = Key256::zeroed();
-        Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-            .hash_password_into(password, salt, key.expose_mut())
-            .map_err(|_| Error::InvalidKdfParams)?;
-        Ok(key)
+        let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+        Key256::try_fill_with(|key| argon2.hash_password_into(password, salt, key))
+            .map_err(|_| Error::InvalidKdfParams)
     }
 }
 

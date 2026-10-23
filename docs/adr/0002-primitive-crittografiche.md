@@ -25,6 +25,12 @@ resistenti a uso improprio (es. riuso del nonce) e con un percorso verso la crit
 `x25519-dalek`, `ed25519-dalek`, `opaque-ke`, `hpke`, `zeroize`, `secrecy`, `subtle` (confronti a tempo costante).
 `openssl` è vietato da `deny.toml`.
 
+### Primitive usate solo per l'import
+Per leggere i backup cifrati di altre app servono le loro primitive, usate **solo in
+lettura** e mai per i dati di Authenticator: AES-256-GCM (Aegis, andOTP, 2FAS),
+scrypt (Aegis), PBKDF2-HMAC-SHA1 (andOTP) e PBKDF2-HMAC-SHA256 (2FAS). I parametri letti
+dai file sono limitati (scrypt ≤ 256 MiB, PBKDF2 ≤ 10 milioni di iterazioni) per evitare DoS.
+
 ### Crypto-agility
 Ogni struttura cifrata inizia con un header versionato (`magic | versione | kdf_id | alg_id | …`)
 autenticato come AD. Cambiare algoritmo = nuova versione + migrazione al primo sblocco.

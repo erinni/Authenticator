@@ -54,3 +54,10 @@ path = "fuzz_targets/google_migration.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "file_importers"
+path = "fuzz_targets/file_importers.rs"
+test = false
+doc = false
+bench = false

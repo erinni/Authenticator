@@ -11,8 +11,24 @@ use crate::error::{Error, Result};
 ///
 /// `Debug` è redatto, non implementa `Clone` né `Display`, e il contenuto viene
 /// azzerato al drop.
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default)]
 pub struct SecretBytes(Zeroizing<Vec<u8>>);
+
+impl SecretBytes {
+    /// Confronto a tempo costante rispetto al contenuto (la lunghezza non è segreta).
+    pub(crate) fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        self.0.as_slice().ct_eq(other.0.as_slice())
+    }
+}
+
+impl PartialEq for SecretBytes {
+    /// Confronto a tempo costante rispetto al contenuto (la lunghezza non è segreta).
+    fn eq(&self, other: &Self) -> bool {
+        self.ct_eq(other).into()
+    }
+}
+
+impl Eq for SecretBytes {}
 
 impl SecretBytes {
     /// Prende possesso dei byte.

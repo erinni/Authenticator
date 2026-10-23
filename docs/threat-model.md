@@ -46,6 +46,8 @@
 | **I** — Segreti residui in memoria | T3 | A1–A3 | `zeroize` al drop; nella PWA vault e seed restano nella memoria WebAssembly e la UI riceve solo codici; password convertite subito in byte e azzerate (le stringhe JS non sono azzerabili). Best-effort. | **Implementata (fase 2)** |
 | **E** — XSS nella PWA che esfiltra codici | T6, T8 | A1, A7 | CSP `default-src 'none'`, Trusted Types, nessun `{@html}`/`innerHTML` (lint), nessuno script terzo; anche con XSS i seed non sono leggibili da JS (solo i codici correnti). Verificato con test end-to-end. | **Implementata (fase 0, 2)** |
 | **I** — Contenuto dei QR esposto alla UI | T6 | A1 | I QR vengono decodificati nel modulo WebAssembly e aggiunti direttamente al vault: l'URI con il segreto non torna mai a JavaScript; il canvas viene ripulito dopo ogni fotogramma. | **Implementata (fase 2)** |
+| **E** — Script di worker caricato da un'origine diversa | T6, T8 | A1 | `new Worker()` e `serviceWorker.register()` accettano solo URL creati dalla policy Trusted Types `authenticator-script-url`, che rifiuta altre origini, `data:` e `blob:`. | **Implementata (fase 2)** |
+| **T** — Versioni di codice mescolate dopo un aggiornamento | T6 | A1 | Il Service Worker serve solo file con hash dalla cache della propria versione; la nuova versione si attiva solo a schede chiuse. | **Implementata (fase 2)** |
 | **I** — Vault lasciato aperto | T1 | A1, A7 | Blocco automatico dopo 5 min di inattività o 60 s con pagina nascosta; blocco manuale; la sessione WASM viene liberata. | **Implementata (fase 2)** |
 | **E** — Clickjacking | T8 | A7 | `frame-ancestors 'none'`, `X-Frame-Options: DENY`. | **Implementata (fase 0)** |
 | **S** — Nome del servizio falsificato in un QR (es. caratteri bidirezionali) | T8 | A7 | Rifiuto di caratteri di controllo e override bidirezionali in issuer e nome. | **Implementata (fase 1)** |
@@ -58,5 +60,5 @@
 ## 4. Rischi residui accettati
 
 - **Malware con privilegi elevati (T3)** può leggere i segreti mentre il vault è sbloccato: nessuna app può impedirlo del tutto.
-- **PWA**: il codice è servito dal server di hosting a ogni aggiornamento. Una compromissione dell'hosting (T6) potrebbe servire codice malevolo. Mitigazioni: Service Worker che fissa la versione, release firmate e verificabili, raccomandazione delle app native per il massimo livello di sicurezza.
+- **PWA**: il codice è servito dal server di hosting a ogni aggiornamento (il Service Worker lo mette in cache, ma un hosting compromesso può comunque distribuire una nuova versione). Una compromissione dell'hosting (T6) potrebbe servire codice malevolo. Mitigazioni: Service Worker che fissa la versione, release firmate e verificabili, raccomandazione delle app native per il massimo livello di sicurezza.
 - **Linux senza TPM/Secret Service**: lo sblocco si appoggia solo alla password.

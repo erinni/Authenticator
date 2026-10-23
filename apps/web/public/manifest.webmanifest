@@ -1,0 +1,12 @@
+{
+  "name": "Authenticator",
+  "short_name": "Authenticator",
+  "description": "Codici di autenticazione a due fattori, cifrati e offline.",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101216",
+  "theme_color": "#1f4fd1",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

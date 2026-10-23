@@ -1,16 +1,14 @@
 <script lang="ts">
-  import type { Session } from "../lib/core";
-  import { errorMessage, parseImport } from "../lib/core";
+  import { core, errorMessage } from "../lib/core";
   import { readFile } from "../lib/files";
   import { nowSeconds } from "../lib/format";
   import { friendlyError, importSummary } from "../lib/messages";
-  import { passwordBytes, wipe } from "../lib/secret-input";
+  import { passwordBytes } from "../lib/secret-input";
 
   interface Props {
-    session: Session;
     onchange: () => Promise<void>;
   }
-  const { session, onchange }: Props = $props();
+  const { onchange }: Props = $props();
 
   const FORMATS = [
     { id: "aegis", label: "Aegis (.json)", accept: ".json" },
@@ -35,15 +33,14 @@
     event.preventDefault();
     error = message = null;
     busy = true;
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    const secret = password ? passwordBytes(password) : undefined;
     try {
       const data =
         format === "google" ? new TextEncoder().encode(link) : file ? await readFile(file) : null;
       if (!data) {
         return;
       }
-      const report = parseImport(session.import(format, data, secret, nowSeconds()));
+      const secret = password ? passwordBytes(password) : null;
+      const report = await core.importData(format, data, secret, nowSeconds());
       message = `Import completato: ${importSummary(report)}.`;
       needsPassword = false;
       link = "";
@@ -53,9 +50,6 @@
       needsPassword ||= code === "import:password-required";
       error = friendlyError(code);
     } finally {
-      if (secret) {
-        wipe(secret);
-      }
       password = "";
       busy = false;
     }

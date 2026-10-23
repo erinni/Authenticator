@@ -1,0 +1,8 @@
+# Prettier legge solo il .prettierignore della cartella da cui viene eseguito:
+# questo replica, per apps/web, le esclusioni della radice.
+dist/
+src/wasm/
+e2e/fixtures/
+test-results/
+playwright-report/
+*.md

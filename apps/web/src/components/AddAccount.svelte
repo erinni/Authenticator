@@ -1,17 +1,17 @@
 <script lang="ts">
   interface Props {
-    onadd: (uri: string) => void;
+    onadd: (uri: string) => Promise<void>;
   }
   const { onadd }: Props = $props();
 
   let uri = $state("");
   let error = $state<string | null>(null);
 
-  function submit(event: SubmitEvent) {
+  async function submit(event: SubmitEvent) {
     event.preventDefault();
     error = null;
     try {
-      onadd(uri.trim());
+      await onadd(uri.trim());
       uri = "";
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

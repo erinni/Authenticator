@@ -23,6 +23,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm --filter @authenticator/web build && pnpm --filter @authenticator/web e2e   # Playwright
 pnpm --filter @authenticator/web dev
 ```
 

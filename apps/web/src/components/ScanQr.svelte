@@ -1,24 +1,14 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import type { Session } from "../lib/core";
-  import { errorMessage } from "../lib/core";
+  import { core, errorMessage } from "../lib/core";
   import { nowSeconds } from "../lib/format";
   import { friendlyError, importSummary } from "../lib/messages";
   import { grabFrame } from "../lib/qr-frame";
 
   interface Props {
-    session: Session;
     onchange: () => Promise<void>;
   }
-  const { session, onchange }: Props = $props();
-
-  interface ScanView {
-    found: number;
-    unsupported: number;
-    added: number;
-    duplicates: number;
-    skipped: number;
-  }
+  const { onchange }: Props = $props();
 
   let video = $state<HTMLVideoElement>();
   let canvas = $state<HTMLCanvasElement>();
@@ -28,20 +18,26 @@
   let status = $state<string | null>(null);
   let error = $state<string | null>(null);
 
-  /** Analizza un fotogramma; restituisce `true` se ha trovato almeno un QR utile. */
-  function scan(source: CanvasImageSource, width: number, height: number): boolean {
-    if (!canvas) {
+  let busy = false;
+
+  /** Analizza un fotogramma; restituisce `true` se ha trovato almeno un QR. */
+  async function scan(source: CanvasImageSource, width: number, height: number): Promise<boolean> {
+    if (!canvas || busy) {
       return false;
     }
     const frame = grabFrame(canvas, source, width, height);
     if (!frame) {
       return false;
     }
-    const pixels = new Uint8Array(frame.data.buffer);
+    busy = true;
     try {
-      const view = JSON.parse(
-        session.scan_qr(frame.width, frame.height, pixels, nowSeconds()),
-      ) as ScanView;
+      // I pixel vengono trasferiti al worker, che li azzera dopo l'analisi.
+      const view = await core.scanQr(
+        frame.width,
+        frame.height,
+        new Uint8Array(frame.data.buffer),
+        nowSeconds(),
+      );
       if (view.found === 0) {
         return false;
       }
@@ -51,11 +47,11 @@
       }
       status = importSummary(view);
       if (view.added > 0) {
-        void onchange();
+        await onchange();
       }
       return true;
     } finally {
-      pixels.fill(0);
+      busy = false;
     }
   }
 
@@ -81,8 +77,12 @@
     element.srcObject = stream;
     await element.play();
     timer = setInterval(() => {
-      if (element.videoWidth > 0 && scan(element, element.videoWidth, element.videoHeight)) {
-        stopCamera();
+      if (element.videoWidth > 0) {
+        void scan(element, element.videoWidth, element.videoHeight).then((found) => {
+          if (found) {
+            stopCamera();
+          }
+        });
       }
     }, 300);
   }
@@ -110,7 +110,7 @@
     status = null;
     try {
       const bitmap = await createImageBitmap(file);
-      const found = scan(bitmap, bitmap.width, bitmap.height);
+      const found = await scan(bitmap, bitmap.width, bitmap.height);
       bitmap.close();
       if (!found) {
         error = "Nessun QR code trovato nell'immagine.";

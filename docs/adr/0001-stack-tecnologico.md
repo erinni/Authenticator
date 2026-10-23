@@ -28,3 +28,8 @@ elevato e un team ridotto. Mantenere la crittografia in più linguaggi moltiplic
 - Un'unica implementazione crittografica da auditare.
 - Tauri mobile è più giovane delle soluzioni native: possibili plugin nativi da scrivere in proprio.
 - Il core non deve dipendere da API di sistema: le capacità della piattaforma (keychain, biometria, RNG hardware) vengono iniettate tramite trait.
+
+## Aggiornamento (fase 2): architettura della PWA
+- Il core WebAssembly gira in un **Web Worker dedicato**: Argon2id non blocca l'interfaccia e la sessione sbloccata vive in un contesto separato dalla pagina, che comunica solo tramite messaggi (metadati e codici in uscita, password come buffer trasferiti e azzerati).
+- Un **Service Worker** generato alla build mette in cache l'intera app (file con hash) e la serve offline; una nuova versione si attiva solo quando tutte le schede della precedente sono chiuse.
+- L'hosting di produzione deve applicare gli header di `apps/web/security-headers.ts` a **tutte** le risposte, incluso `sw.js`.

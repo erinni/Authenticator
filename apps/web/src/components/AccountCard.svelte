@@ -1,22 +1,19 @@
 <script lang="ts">
   import { copyCode } from "../lib/clipboard";
   import { groupCode } from "../lib/format";
-  import type { AccountView, Session } from "../lib/core";
-  import { totp } from "../lib/core";
+  import type { AccountView, TotpView } from "../lib/core";
 
   interface Props {
-    session: Session;
     account: AccountView;
-    now: number;
-    onhotp: (id: string) => string;
-    onremove: (account: AccountView) => void;
+    current: TotpView | null;
+    onhotp: (id: string) => Promise<string>;
+    onremove: (account: AccountView) => Promise<void>;
   }
-  const { session, account, now, onhotp, onremove }: Props = $props();
+  const { account, current, onhotp, onremove }: Props = $props();
 
   let hotpCode = $state<string | null>(null);
   let copied = $state(false);
 
-  const current = $derived(account.kind === "totp" ? totp(session, account.id, now) : null);
   const code = $derived(current?.code ?? hotpCode);
 
   async function copy() {
@@ -50,19 +47,17 @@
         aria-label="Secondi rimanenti: {current.remaining}"
         class:expiring={current.remaining <= 5}
       ></progress>
-    {:else}
+    {:else if account.kind === "hotp"}
       <button
-        onclick={() => {
-          hotpCode = onhotp(account.id);
+        onclick={async () => {
+          hotpCode = await onhotp(account.id);
         }}>Genera</button
       >
     {/if}
     {#if copied}<span class="copied" role="status">Copiato</span>{/if}
     <button
       class="ghost"
-      onclick={() => {
-        onremove(account);
-      }}
+      onclick={() => void onremove(account)}
       aria-label="Rimuovi {account.issuer ?? account.name}"
     >
       ✕

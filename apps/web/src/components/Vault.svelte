@@ -6,16 +6,15 @@
   import ImportPanel from "./ImportPanel.svelte";
   import ScanQr from "./ScanQr.svelte";
   import SecuritySettings from "./SecuritySettings.svelte";
-  import { accounts, type AccountView, type Session } from "../lib/core";
+  import { core, type AccountView, type TotpView } from "../lib/core";
   import { nowSeconds } from "../lib/format";
 
   interface Props {
-    session: Session;
     onchange: () => Promise<void>;
     onlock: () => void;
     verify: (password: string) => Promise<boolean>;
   }
-  const { session, onchange, onlock, verify }: Props = $props();
+  const { onchange, onlock, verify }: Props = $props();
 
   const TABS = [
     { id: "codes", label: "Codici" },
@@ -25,40 +24,43 @@
   let tab = $state<(typeof TABS)[number]["id"]>("codes");
 
   let list = $state<AccountView[]>([]);
-  let now = $state(nowSeconds());
+  let codes = $state<Record<string, TotpView>>({});
 
-  function refresh() {
-    list = accounts(session);
+  async function refresh() {
+    list = await core.accounts();
+    codes = await core.codes(nowSeconds());
   }
-  $effect.pre(refresh);
+  void refresh();
 
-  const tick = setInterval(() => (now = nowSeconds()), 1000);
+  const tick = setInterval(() => {
+    void core.codes(nowSeconds()).then((next) => (codes = next));
+  }, 1000);
   onDestroy(() => {
     clearInterval(tick);
   });
 
   async function changed() {
-    refresh();
+    await refresh();
     await onchange();
   }
 
-  function add(uri: string) {
-    session.add_uri(uri, nowSeconds());
-    void changed();
+  async function add(uri: string) {
+    await core.addUri(uri, nowSeconds());
+    await changed();
     tab = "codes";
   }
 
-  function hotp(id: string): string {
-    const code = session.next_hotp(id);
-    void changed();
+  async function hotp(id: string): Promise<string> {
+    const code = await core.nextHotp(id);
+    await changed();
     return code;
   }
 
-  function remove(account: AccountView) {
+  async function remove(account: AccountView) {
     const label = account.issuer ? `${account.issuer} (${account.name})` : account.name;
     if (confirm(`Rimuovere ${label}? Senza un backup non potrai più generare i suoi codici.`)) {
-      session.remove(account.id);
-      void changed();
+      await core.remove(account.id);
+      await changed();
     }
   }
 </script>
@@ -85,20 +87,25 @@
     {:else}
       <ul class="accounts">
         {#each list as account (account.id)}
-          <AccountCard {session} {account} {now} onhotp={hotp} onremove={remove} />
+          <AccountCard
+            {account}
+            current={codes[account.id] ?? null}
+            onhotp={hotp}
+            onremove={remove}
+          />
         {/each}
       </ul>
     {/if}
   {:else if tab === "add"}
     <div class="panels">
-      <ScanQr {session} onchange={changed} />
+      <ScanQr onchange={changed} />
       <AddAccount onadd={add} />
-      <ImportPanel {session} onchange={changed} />
+      <ImportPanel onchange={changed} />
     </div>
   {:else}
     <div class="panels">
-      <SecuritySettings {session} {verify} onchange={changed} />
-      <BackupPanel {session} onchange={changed} />
+      <SecuritySettings {verify} onchange={changed} />
+      <BackupPanel onchange={changed} />
     </div>
   {/if}
 </section>

@@ -16,8 +16,9 @@ cargo deny check            # richiede: cargo install --locked cargo-deny
 cargo +nightly fuzz list --fuzz-dir fuzz
 cargo +nightly fuzz run --fuzz-dir fuzz vault_open -- -max_total_time=300
 
-# Web
+# Web (richiede: cargo install --locked wasm-bindgen-cli --version 0.2.129)
 pnpm install
+pnpm --filter @authenticator/web wasm   # compila il core in WebAssembly
 pnpm format:check
 pnpm lint
 pnpm typecheck

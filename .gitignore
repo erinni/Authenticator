@@ -19,3 +19,4 @@ coverage/
 *.keystore
 *.jks
 *.mobileprovision
+apps/web/src/wasm/

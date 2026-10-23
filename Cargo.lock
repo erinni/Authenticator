@@ -89,6 +89,18 @@ name = "authenticator-sync-proto"
 version = "0.0.0"
 
 [[package]]
+name = "authenticator-wasm"
+version = "0.0.0"
+dependencies = [
+ "authenticator-core",
+ "authenticator-import",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "zeroize",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

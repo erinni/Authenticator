@@ -70,6 +70,12 @@ impl Store {
         &self.entries
     }
 
+    /// Consuma l'elenco restituendo gli account.
+    #[must_use]
+    pub fn into_entries(self) -> Vec<Entry> {
+        self.entries
+    }
+
     /// Cerca un account.
     #[must_use]
     pub fn get(&self, id: &EntryId) -> Option<&Entry> {

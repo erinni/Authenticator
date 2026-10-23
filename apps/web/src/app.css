@@ -1,0 +1,192 @@
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --text: #16181d;
+  --muted: #5d6470;
+  --accent: #1f4fd1;
+  --accent-text: #ffffff;
+  --danger: #b42318;
+  --border: #d9dde3;
+  color-scheme: light dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101216;
+    --surface: #1a1d23;
+    --text: #e8eaee;
+    --muted: #9aa1ad;
+    --accent: #7b9cff;
+    --accent-text: #0b1020;
+    --danger: #ff8a80;
+    --border: #2d323b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 1.5rem;
+}
+h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.card,
+.add {
+  display: grid;
+  gap: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.add {
+  margin-top: 1.5rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+input {
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+button.ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.hint {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.error {
+  color: var(--danger);
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.accounts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.account {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "labels code" "actions actions";
+  gap: 0.5rem 1rem;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+.labels {
+  grid-area: labels;
+  display: grid;
+  min-width: 0;
+}
+.issuer {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.name {
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.code {
+  grid-area: code;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1.6rem;
+  letter-spacing: 0.05em;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.2rem 0.4rem;
+}
+.code.placeholder {
+  color: var(--muted);
+}
+
+.actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.actions progress {
+  flex: 1;
+  height: 0.4rem;
+  accent-color: var(--accent);
+}
+.actions progress.expiring {
+  accent-color: var(--danger);
+}
+.copied {
+  color: var(--muted);
+  font-size: 0.85rem;
+}

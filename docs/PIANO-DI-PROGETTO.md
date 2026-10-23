@@ -234,4 +234,10 @@ Dettagli in `docs/adr/`.
   - [x] Import da Google Authenticator, Aegis, 2FAS, andOTP (anche cifrati), verificato su export reali
   - [x] Backup cifrato su file ed export `otpauth://`
   - [x] Fuzzing (6 target) in CI, property test, test di compatibilità del formato, vettori Wycheproof
-- [ ] **Fase 2 — Web PWA**: prossimo passo (binding WASM, UI, sblocco con passkey PRF).
+- [~] **Fase 2 — Web PWA** (in corso):
+  - [x] Binding WebAssembly (`crates/wasm`): vault e segreti solo nella memoria WASM, la UI riceve solo metadati e codici
+  - [x] Vault cifrato in IndexedDB, creazione/sblocco con password, elenco con codici TOTP/HOTP, aggiunta da URI
+  - [x] Blocco automatico (inattività e pagina nascosta), pulizia degli appunti, test end-to-end con CSP di produzione
+  - [ ] Sblocco con passkey (WebAuthn PRF) e recovery key dalla UI
+  - [ ] Scansione QR (fotocamera e immagine), import e backup dalla UI
+  - [ ] Service Worker per l'uso offline, manifest PWA, Argon2 in un Web Worker

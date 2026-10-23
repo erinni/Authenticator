@@ -1,0 +1,23 @@
+[package]
+name = "authenticator-wasm"
+description = "Binding WebAssembly del core per la PWA."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+authenticator-core.workspace = true
+authenticator-import = { path = "../import" }
+serde = { version = "1.0.229", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.154", default-features = false, features = ["std"] }
+wasm-bindgen = "=0.2.129"
+zeroize = "1.9.1"
+
+[lints]
+workspace = true

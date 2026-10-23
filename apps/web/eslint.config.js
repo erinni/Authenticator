@@ -5,7 +5,7 @@ import globals from "globals";
 import ts from "typescript-eslint";
 
 export default defineConfig(
-  { ignores: ["dist/", "src/wasm/"] },
+  { ignores: ["dist/", "dist-desktop/", "src/wasm/"] },
   js.configs.recommended,
   ...ts.configs.strictTypeChecked,
   ...svelte.configs.recommended,

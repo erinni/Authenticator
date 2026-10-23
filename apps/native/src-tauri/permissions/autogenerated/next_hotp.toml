@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-next-hotp"
+description = "Enables the next_hotp command without any pre-configured scope."
+commands.allow = ["next_hotp"]
+
+[[permission]]
+identifier = "deny-next-hotp"
+description = "Denies the next_hotp command without any pre-configured scope."
+commands.deny = ["next_hotp"]

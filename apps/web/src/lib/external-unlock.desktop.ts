@@ -1,12 +1,12 @@
 /**
- * Sblocco con il sistema nell'app desktop: Windows Hello o il portachiavi della sessione
- * su Linux. Il segreto dello slot resta nel processo nativo e non arriva mai alla webview.
+ * Sblocco con il sistema nell'app desktop: Touch ID, Windows Hello o il portachiavi della
+ * sessione su Linux. Il segreto resta nel processo nativo e non arriva mai alla webview.
  */
 import { invoke } from "@tauri-apps/api/core";
 import type * as Web from "./external-unlock";
 import { UnlockError } from "./unlock-error";
 
-type Method = "windows-hello" | "secret-service";
+type Method = "windows-hello" | "secret-service" | "touch-id";
 
 const WINDOWS_HELLO: Web.UnlockTexts = {
   title: "Windows Hello",
@@ -40,6 +40,20 @@ const SECRET_SERVICE: Web.UnlockTexts = {
   failed: "Sblocco con il portachiavi non riuscito.",
 };
 
+const TOUCH_ID: Web.UnlockTexts = {
+  title: "Touch ID",
+  unlock: "Sblocca con Touch ID",
+  add: "Attiva Touch ID",
+  added: "Touch ID attivato: ora puoi sbloccare il vault con l'impronta o la password del Mac.",
+  item: "Touch ID",
+  hint: "Sblocca il vault con Touch ID o la password del Mac. Il segreto resta nel portachiavi di questo computer e non viene sincronizzato. La password resta sempre valida.",
+  warning: null,
+  removeConfirm: "Disattivare Touch ID per questo vault? Servirà di nuovo la password.",
+  removed: "Touch ID disattivato.",
+  unavailable: "Touch ID richiede un Mac con un codice di accesso e una build firmata.",
+  failed: "Sblocco con Touch ID non riuscito.",
+};
+
 const UNAVAILABLE: Web.UnlockTexts = {
   ...WINDOWS_HELLO,
   title: "Sblocco di sistema",
@@ -62,6 +76,8 @@ export const unlockOption: typeof Web.unlockOption = async () => {
       return { available: true, texts: WINDOWS_HELLO };
     case "secret-service":
       return { available: true, texts: SECRET_SERVICE };
+    case "touch-id":
+      return { available: true, texts: TOUCH_ID };
     default:
       return { available: false, texts: UNAVAILABLE };
   }

@@ -1,4 +1,4 @@
-//! Sistemi senza sblocco di sistema (per ora macOS, in attesa della firma Developer ID).
+//! Sistemi operativi senza un backend di sblocco di sistema.
 
 // Stesse firme `async` delle altre piattaforme.
 #![allow(clippy::unused_async)]

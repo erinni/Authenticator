@@ -31,7 +31,9 @@ core, come si condivide la UI con la PWA e quali API di sistema sono raggiungibi
     Su disco non si salva nulla e ogni sblocco chiede PIN, impronta o volto.
   - *Linux* (Secret Service): segreto casuale di 32 byte nel portachiavi della sessione. Senza
     biometria vale quanto la sessione utente: la UI lo dice prima dell'attivazione.
-  - *macOS*: rimandato. Il Keychain con Touch ID richiede l'app firmata con un Developer ID.
+  - *macOS*: segreto casuale nel portachiavi di login, con access control `USER_PRESENCE` e
+    `WhenPasscodeSetThisDeviceOnly`: ogni lettura richiede Touch ID o la password del Mac.
+    Nelle build non firmate il sistema rifiuta l'accesso; l'uso richiede una build Developer ID.
   - Nessun `unsafe`: le API WinRT del crate `windows` sono sicure.
 - **QR dallo schermo** (aggiornato il 2026-10-23): la schermata è catturata e analizzata nel
   processo nativo e azzerata subito dopo; alla webview arriva solo il riepilogo (quanti account).

@@ -8,6 +8,8 @@
 //!   segreto: su disco non si salva nulla, e ogni sblocco richiede PIN, impronta o volto.
 //! - **Secret Service** (Linux): un segreto casuale di 32 byte nel portachiavi della
 //!   sessione. Nessuna biometria: vale quanto la sessione utente, e la UI lo dice.
+//! - **Touch ID** (macOS): un segreto casuale nel portachiavi di login, protetto da un
+//!   access control che richiede Touch ID o la password del Mac a ogni lettura.
 //!
 //! Il segreto non attraversa mai la webview: lo usa direttamente il core nativo.
 
@@ -17,10 +19,13 @@ use zeroize::Zeroizing;
 #[cfg(target_os = "linux")]
 #[path = "platform_unlock/secret_service.rs"]
 mod imp;
+#[cfg(target_os = "macos")]
+#[path = "platform_unlock/macos.rs"]
+mod imp;
 #[cfg(windows)]
 #[path = "platform_unlock/windows_hello.rs"]
 mod imp;
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 #[path = "platform_unlock/unsupported.rs"]
 mod imp;
 
@@ -34,6 +39,9 @@ pub(crate) enum Method {
     /// Portachiavi della sessione via Secret Service (`GNOME Keyring`, `KWallet`…).
     #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     SecretService,
+    /// Touch ID o password del Mac, tramite il portachiavi di login.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    TouchId,
 }
 
 /// Segreto di uno slot, azzerato al drop.
@@ -73,5 +81,5 @@ pub(crate) fn new_slot_id() -> Result<SlotId, String> {
 }
 
 /// Nome dell'applicazione negli archivi di sistema.
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 const APP_ID: &str = "io.github.erinni.authenticator";

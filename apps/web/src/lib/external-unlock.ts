@@ -2,7 +2,7 @@
  * Sblocco alternativo alla password tramite uno slot "esterno" del vault.
  *
  * Nella PWA è la passkey (WebAuthn PRF, vedi `passkey.ts`); nell'app desktop
- * `external-unlock.desktop.ts` usa il sistema (Windows Hello, portachiavi di Linux).
+ * `external-unlock.desktop.ts` usa il sistema (Touch ID, Windows Hello, portachiavi di Linux).
  * La password resta sempre valida.
  */
 import { core } from "./core";

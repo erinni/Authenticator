@@ -5,6 +5,7 @@
   import Updates from "./components/Updates.svelte";
   import Vault from "./components/Vault.svelte";
   import { startAutoLock } from "./lib/auto-lock";
+  import { clearClipboard } from "./lib/clipboard";
   import { core, errorMessage, initCore } from "./lib/core";
   import { unlockVault } from "./lib/external-unlock";
   import { passwordBytes } from "./lib/secret-input";
@@ -88,6 +89,8 @@
     stopAutoLock = null;
     recovered = false;
     screen = sealed ? "locked" : "setup";
+    // Nessun codice resta negli appunti dopo il blocco.
+    void clearClipboard();
     await core.lock();
   }
 </script>

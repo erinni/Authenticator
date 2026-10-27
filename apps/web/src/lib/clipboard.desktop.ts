@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import * as Web from "./clipboard";
 
 export const CLIPBOARD_CLEAR_MS = Web.CLIPBOARD_CLEAR_MS;
+export const clearClipboard = Web.clearClipboard;
 
 export const copyCode: typeof Web.copyCode = async (code) => {
   try {

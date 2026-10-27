@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import {
   PASSWORD,
@@ -11,7 +12,7 @@ import {
 } from "./helpers";
 
 const ACME = `otpauth://totp/ACME:mario@example.com?secret=${RFC_SECRET}&issuer=ACME`;
-const fixture = (name: string) => new URL(`fixtures/${name}`, import.meta.url).pathname;
+const fixture = (name: string) => fileURLToPath(new URL(`fixtures/${name}`, import.meta.url));
 
 let problems: string[] = [];
 

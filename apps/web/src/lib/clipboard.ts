@@ -15,3 +15,9 @@ export async function copyCode(code: string): Promise<void> {
     void navigator.clipboard.writeText("").catch(() => undefined);
   }, CLIPBOARD_CLEAR_MS);
 }
+
+/** Svuota subito gli appunti e annulla lo svuotamento programmato (al blocco del vault). */
+export async function clearClipboard(): Promise<void> {
+  clearTimeout(timer);
+  await navigator.clipboard.writeText("").catch(() => undefined);
+}

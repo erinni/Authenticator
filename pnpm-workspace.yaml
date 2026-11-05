@@ -1,6 +1,9 @@
 packages:
   - "apps/*"
 
+overrides:
+  minimatch: "^11.0.1"
+
 # Sicurezza supply chain
 # Non installare versioni pubblicate da meno di 7 giorni (in minuti).
 minimumReleaseAge: 10080

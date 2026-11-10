@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-watch-lock"
+description = "Enables the watch_lock command without any pre-configured scope."
+commands.allow = ["watch_lock"]
+
+[[permission]]
+identifier = "deny-watch-lock"
+description = "Denies the watch_lock command without any pre-configured scope."
+commands.deny = ["watch_lock"]

@@ -29,8 +29,9 @@ jobs:
       - run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
+      # L'app desktop (WebKitGTK, UI compilata) ha il suo job: vedi `desktop`.
+      - run: cargo clippy --workspace --exclude authenticator-native --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --exclude authenticator-native --locked
       - name: Build WebAssembly del core
         run: cargo build -p authenticator-core -p authenticator-wasm --target wasm32-unknown-unknown --locked
       - name: Clippy sul target WebAssembly
@@ -72,3 +73,42 @@ jobs:
           name: playwright-traces
           path: apps/web/test-results/
           retention-days: 7
+
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Dipendenze di sistema (WebKitGTK)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libxdo-dev
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # La UI compilata viene incorporata nel binario: serve anche a clippy e ai test.
+      - run: pnpm --filter @authenticator/web build:desktop
+      - run: cargo clippy -p authenticator-native --all-targets --locked -- -D warnings
+      - run: cargo test -p authenticator-native --locked
+      - name: Installer (non firmati)
+        run: pnpm --filter @authenticator/native bundle
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-${{ matrix.os }}
+          path: |
+            target/release/bundle/
+            !target/release/bundle/**/*.sh
+          retention-days: 7
+          if-no-files-found: error

@@ -39,6 +39,10 @@ export interface CoreApi {
   create: (password: Uint8Array) => void;
   open: (file: Uint8Array, password: Uint8Array) => void;
   openRecovery: (file: Uint8Array, recoveryKey: string) => void;
+  /** Apre con il segreto di una passkey (PRF) e l'id del suo slot. */
+  openExternal: (file: Uint8Array, slotId: Uint8Array, secret: Uint8Array) => void;
+  /** Id (hex) degli slot esterni di un vault salvato, letti senza sbloccarlo. */
+  externalSlots: (file: Uint8Array) => string[];
   /** Verifica la password su un vault salvato senza toccare la sessione corrente. */
   verify: (file: Uint8Array, password: Uint8Array) => boolean;
   lock: () => void;
@@ -57,6 +61,8 @@ export interface CoreApi {
   scanQr: (width: number, height: number, rgba: Uint8Array, now: number) => ScanView;
   changePassword: (password: Uint8Array) => void;
   createRecoveryKey: () => string;
+  setExternal: (slotId: Uint8Array, secret: Uint8Array) => void;
+  removeExternal: (slotId: Uint8Array) => void;
   exportBackup: (password: Uint8Array) => Uint8Array;
   restoreBackup: (data: Uint8Array, password: Uint8Array, now: number) => ImportView;
 }

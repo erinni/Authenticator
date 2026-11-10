@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { hue, initial } from "../lib/avatar";
   import { copyCode } from "../lib/clipboard";
   import { groupCode } from "../lib/format";
   import type { AccountView, TotpView } from "../lib/core";
@@ -15,6 +16,7 @@
   let copied = $state(false);
 
   const code = $derived(current?.code ?? hotpCode);
+  const label = $derived(account.issuer ?? account.name);
 
   async function copy() {
     if (code) {
@@ -26,6 +28,7 @@
 </script>
 
 <li class="account">
+  <span class="avatar hue-{hue(label)}" aria-hidden="true">{initial(label)}</span>
   <div class="labels">
     <span class="issuer">{account.issuer ?? account.name}</span>
     {#if account.issuer}<span class="name">{account.name}</span>{/if}

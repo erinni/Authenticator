@@ -1,6 +1,9 @@
 packages:
   - "apps/*"
 
+overrides:
+  minimatch: "^11.0.1"
+
 # Sicurezza supply chain
 # Non installare versioni pubblicate da meno di 7 giorni (in minuti).
 minimumReleaseAge: 10080
@@ -12,8 +15,3 @@ trustPolicyExclude:
 # Nessuno script di install/postinstall eseguito se non esplicitamente approvato.
 strictDepBuilds: true
 onlyBuiltDependencies: []
-
-# Correzioni di sicurezza per dipendenze transitive non ancora aggiornate a monte.
-overrides:
-  # GHSA-g3hv-75wg-m249 (DoS): ESLint richiede ancora minimatch ^10, corretto da 11.0.1.
-  minimatch@>=7.0.0 <11.0.1: ^11.0.1

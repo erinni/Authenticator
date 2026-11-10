@@ -3,12 +3,14 @@
 ## Requisiti
 - Rust (la versione è fissata in `rust-toolchain.toml`: `rustup` la installa da solo)
 - Node.js ≥ 22.12 e pnpm 10.28 (`corepack enable`)
+- App desktop: i [prerequisiti di Tauri](https://v2.tauri.app/start/prerequisites/) per il proprio sistema
+  (su Linux: `libwebkit2gtk-4.1-dev librsvg2-dev libxdo-dev`)
 
 ## Comandi
 ```sh
 # Rust
 cargo fmt --all
-cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings   # l'app desktop richiede la UI compilata (vedi sotto)
 cargo test --workspace
 cargo deny check            # richiede: cargo install --locked cargo-deny
 
@@ -25,6 +27,11 @@ pnpm typecheck
 pnpm test
 pnpm --filter @authenticator/web build && pnpm --filter @authenticator/web e2e   # Playwright
 pnpm --filter @authenticator/web dev
+
+# App desktop (Tauri)
+pnpm --filter @authenticator/web build:desktop   # UI per il desktop (apps/web/dist-desktop)
+pnpm --filter @authenticator/native dev          # app con ricaricamento automatico della UI
+pnpm --filter @authenticator/native bundle       # installer (non firmati) in target/release/bundle
 ```
 
 ## Regole
@@ -45,7 +52,7 @@ Da applicare su GitHub (*Settings*), non configurabili da file:
 
 1. **Branch protection / Ruleset su `main`**:
    - richiedere pull request con almeno 1 approvazione e review dei CODEOWNERS;
-   - richiedere i check di stato: `Rust (fmt, clippy, test)`, `Web (lint, typecheck, test, build)`, `cargo-deny …`, `pnpm audit`, `CodeQL (…)`;
+   - richiedere i check di stato: `Rust (fmt, clippy, test)`, `Web (lint, typecheck, test, build)`, `Desktop (…)`, `cargo-deny …`, `pnpm audit`, `CodeQL (…)`;
    - richiedere **commit firmati** e cronologia lineare;
    - bloccare force push e cancellazione.
 2. **Security → Code security**: attivare *Private vulnerability reporting*, *Dependabot alerts*, *Dependabot security updates*, *Secret scanning* e *Push protection*.

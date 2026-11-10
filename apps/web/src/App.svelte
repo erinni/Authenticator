@@ -2,9 +2,12 @@
   import { onMount } from "svelte";
   import Setup from "./components/Setup.svelte";
   import Unlock from "./components/Unlock.svelte";
+  import Updates from "./components/Updates.svelte";
   import Vault from "./components/Vault.svelte";
   import { startAutoLock } from "./lib/auto-lock";
+  import { clearClipboard } from "./lib/clipboard";
   import { core, errorMessage, initCore } from "./lib/core";
+  import { unlockVault } from "./lib/external-unlock";
   import { passwordBytes } from "./lib/secret-input";
   import { loadVault, requestPersistence, saveVault } from "./lib/storage";
 
@@ -15,11 +18,14 @@
   let sealed: Uint8Array | null = null;
   let stopAutoLock: (() => void) | null = null;
   let recovered = $state(false);
+  /** Id degli slot esterni (passkey o sblocco di sistema) del vault salvato, dall'header. */
+  let externalSlots = $state<string[]>([]);
 
   onMount(async () => {
     try {
       initCore();
       sealed = await loadVault();
+      await readExternalSlots();
       screen = sealed ? "locked" : "setup";
     } catch (e) {
       fatal = errorMessage(e);
@@ -35,9 +41,14 @@
     return sealed.slice();
   }
 
+  async function readExternalSlots() {
+    externalSlots = sealed ? await core.externalSlots(savedVault()) : [];
+  }
+
   async function persist() {
     sealed = await core.seal();
     await saveVault(sealed);
+    await readExternalSlots();
   }
 
   function enter() {
@@ -57,6 +68,11 @@
     enter();
   }
 
+  async function unlockExternal() {
+    await unlockVault(savedVault(), externalSlots);
+    enter();
+  }
+
   async function recover(recoveryKey: string) {
     await core.openRecovery(savedVault(), recoveryKey);
     recovered = true;
@@ -73,12 +89,15 @@
     stopAutoLock = null;
     recovered = false;
     screen = sealed ? "locked" : "setup";
+    // Nessun codice resta negli appunti dopo il blocco.
+    void clearClipboard();
     await core.lock();
   }
 </script>
 
 <main>
   <h1>Authenticator</h1>
+  <Updates mode="banner" />
   {#if screen === "loading"}
     <p class="hint">Caricamento…</p>
   {:else if screen === "error"}
@@ -86,7 +105,7 @@
   {:else if screen === "setup"}
     <Setup oncreate={create} />
   {:else if screen === "locked"}
-    <Unlock onunlock={unlock} onrecover={recover} />
+    <Unlock onunlock={unlock} onexternal={unlockExternal} onrecover={recover} {externalSlots} />
   {:else}
     {#if recovered}
       <p class="notice" role="alert">
@@ -94,6 +113,6 @@
         «Impostazioni».
       </p>
     {/if}
-    <Vault onchange={persist} onlock={() => void lock()} {verify} />
+    <Vault onchange={persist} onlock={() => void lock()} {verify} {externalSlots} />
   {/if}
 </main>

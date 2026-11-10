@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { createVault, watchViolations } from "./helpers";
 
@@ -29,7 +30,7 @@ function bmpToY4m(bmpPath: string): string {
   return path;
 }
 
-const video = bmpToY4m(new URL("fixtures/totp-qr.bmp", import.meta.url).pathname);
+const video = bmpToY4m(fileURLToPath(new URL("fixtures/totp-qr.bmp", import.meta.url)));
 const executablePath = process.env["CHROMIUM_PATH"];
 
 test.use({

@@ -50,6 +50,9 @@ jobs:
         with:
           fail-on-severity: moderate
           deny-licenses: AGPL-1.0, SSPL-1.0, BUSL-1.1
+          # glib 0.18 (gtk-rs, tramite Tauri su Linux): unsoundness in `VariantStrIter`, API che
+          # nessuna dipendenza usa. Corretta solo in glib 0.20, che Tauri 2 (GTK 3) non adotta.
+          allow-ghsas: GHSA-wrw7-89jp-8q8g
 
   codeql:
     name: CodeQL (${{ matrix.language }})

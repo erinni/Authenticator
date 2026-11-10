@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath, configurazione "executable": l'eseguibile dell'app, firmato prima di creare gli
+     installer (job "Build (windows-latest)" di .github/workflows/release.yml). -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="authenticator-native.exe" product-name="Authenticator">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

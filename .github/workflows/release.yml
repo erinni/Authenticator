@@ -1,0 +1,200 @@
+name: Release
+
+# Si avvia con un tag `vX.Y.Z` uguale alla versione in apps/native/src-tauri/tauri.conf.json.
+# Produce una bozza di release con gli installer e il manifesto dell'updater (`latest.json`):
+# diventa visibile agli utenti (e agli aggiornamenti automatici) solo quando la pubblichi.
+#
+# Secret e variabili del repository (vedi docs/release.md):
+# - TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD (secret): chiave dell'updater.
+# - TAURI_UPDATER_PUBKEY (variabile): la sua parte pubblica, incorporata nell'app.
+# - SIGNPATH_API_TOKEN (secret), SIGNPATH_ORGANIZATION_ID e SIGNPATH_PROJECT_SLUG (variabili):
+#   firma Authenticode su Windows. Senza, gli installer Windows restano non firmati.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      # SignPath legge i dettagli del job e scarica l'artefatto da firmare.
+      actions: read
+    strategy:
+      fail-fast: true
+      matrix:
+        # Ubuntu 22.04: AppImage e .deb compatibili con distribuzioni meno recenti.
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    env:
+      SIGNPATH: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && startsWith(matrix.os, 'windows') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Versione del tag e configurazione di release
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          version=$(node -p 'require("./apps/native/src-tauri/tauri.conf.json").version')
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::il tag $TAG non corrisponde alla versione $version di tauri.conf.json"
+            exit 1
+          fi
+          if [ -z "$PUBKEY" ] || [ "$HAS_KEY" != "true" ]; then
+            echo "::error::mancano la chiave dell'updater (TAURI_SIGNING_PRIVATE_KEY) o la sua parte pubblica (TAURI_UPDATER_PUBKEY)"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          # Pacchetti dell'updater firmati e chiave pubblica incorporata nell'app.
+          node -e 'require("fs").writeFileSync("release.conf.json", JSON.stringify({
+            bundle: { createUpdaterArtifacts: true },
+            plugins: { updater: { pubkey: process.env.PUBKEY } },
+          }))'
+      - name: Dipendenze di sistema (WebKitGTK)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev libxdo-dev
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: rustup show active-toolchain
+
+      - name: Installer Linux e macOS
+        if: runner.os != 'Windows'
+        env:
+          # La chiave dell'updater è visibile solo ai passi che firmano.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --filter @authenticator/native tauri build --config ../../release.conf.json
+
+      # Windows: l'eseguibile viene firmato prima di essere messo negli installer, che a loro
+      # volta vengono firmati; le firme dell'updater si calcolano sui file finali.
+      - name: Eseguibile Windows
+        if: runner.os == 'Windows'
+        run: pnpm --filter @authenticator/native tauri build --no-bundle --config ../../release.conf.json
+      - id: unsigned-exe
+        if: env.SIGNPATH == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-exe
+          path: target/release/authenticator-native.exe
+          if-no-files-found: error
+          retention-days: 1
+      - name: Firma dell'eseguibile (SignPath)
+        if: env.SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: executable
+          github-artifact-id: ${{ steps.unsigned-exe.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-exe
+      - name: Eseguibile firmato al posto dell'originale
+        if: env.SIGNPATH == 'true'
+        shell: bash
+        run: cp signed-exe/authenticator-native.exe target/release/authenticator-native.exe
+      - name: Installer Windows
+        if: runner.os == 'Windows'
+        env:
+          # La chiave dell'updater è visibile solo ai passi che firmano.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm --filter @authenticator/native tauri bundle --bundles nsis,msi --config ../../release.conf.json
+      - id: unsigned-installers
+        if: env.SIGNPATH == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-installers
+          path: |
+            target/release/bundle/nsis/*-setup.exe
+            target/release/bundle/msi/*.msi
+          if-no-files-found: error
+          retention-days: 1
+      - name: Firma degli installer (SignPath)
+        if: env.SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.unsigned-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: target/release/bundle
+      - name: Firme dell'updater sugli installer finali
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          for file in target/release/bundle/nsis/*-setup.exe target/release/bundle/msi/*.msi; do
+            rm -f "$file.sig"
+            pnpm --filter @authenticator/native tauri signer sign --app-version "$VERSION" "$(cygpath -w "$PWD/$file")"
+          done
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            target/release/bundle/nsis/*-setup.exe*
+            target/release/bundle/msi/*.msi*
+            target/release/bundle/appimage/*.AppImage*
+            target/release/bundle/deb/*.deb*
+            target/release/bundle/rpm/*.rpm*
+            target/release/bundle/dmg/*.dmg
+            target/release/bundle/macos/*.app.tar.gz*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Bozza di release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Manifesto dell'updater
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/update-manifest.mjs artifacts "$TAG" "$GITHUB_REPOSITORY" > latest.json
+      - name: Bozza di release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          find artifacts -type f \( -name '*.sig' -o -name '*.exe' -o -name '*.msi' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.dmg' -o -name '*.tar.gz' \) -print0 \
+            | xargs -0 gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+                --title "Authenticator ${TAG#v}" --generate-notes latest.json

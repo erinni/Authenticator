@@ -6,7 +6,7 @@
  * sui telefoni lenti) blocchi l'interfaccia, e separa la memoria dei segreti dal
  * contesto della pagina.
  */
-import init, { Session } from "../wasm/authenticator_wasm.js";
+import init, { Session, external_slots } from "../wasm/authenticator_wasm.js";
 import type {
   AccountView,
   CoreApi,
@@ -45,6 +45,10 @@ const api: CoreApi = {
   openRecovery: (file, recoveryKey) => {
     replace(Session.open_recovery(file, recoveryKey));
   },
+  openExternal: (file, slotId, secret) => {
+    replace(Session.open_external(file, slotId, secret));
+  },
+  externalSlots: (file) => JSON.parse(external_slots(file)) as string[],
   verify: (file, password) => {
     try {
       Session.open(file, password).free();
@@ -72,6 +76,12 @@ const api: CoreApi = {
     current().change_password(password);
   },
   createRecoveryKey: () => current().create_recovery_key(),
+  setExternal: (slotId, secret) => {
+    current().set_external(slotId, secret);
+  },
+  removeExternal: (slotId) => {
+    current().remove_external(slotId);
+  },
   exportBackup: (password) => current().export_backup(password),
   restoreBackup: (data, password, now) =>
     JSON.parse(current().restore_backup(data, password, now)) as ImportView,

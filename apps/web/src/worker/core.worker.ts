@@ -16,7 +16,7 @@ import type {
   ScanView,
   TotpView,
 } from "../lib/protocol";
-import { transferables } from "../lib/protocol";
+import { parseRequest, transferables } from "../lib/protocol";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -80,8 +80,12 @@ const api: CoreApi = {
 /** Vista non tipizzata di `api` per l'invocazione dinamica dei metodi. */
 const handlers = api as unknown as Record<Request["method"], (...args: unknown[]) => unknown>;
 
-self.onmessage = async (event: MessageEvent<Request>) => {
-  const { id, method, args } = event.data;
+self.onmessage = async (event: MessageEvent<unknown>) => {
+  const request = parseRequest(event.data, api);
+  if (!request) {
+    return;
+  }
+  const { id, method, args } = request;
   let response: Response;
   try {
     await ready;

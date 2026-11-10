@@ -87,3 +87,28 @@ export function transferables(args: readonly unknown[]): ArrayBuffer[] {
   }
   return [...buffers];
 }
+
+/**
+ * Valida un messaggio ricevuto dal worker.
+ *
+ * Un worker dedicato riceve messaggi solo dalla pagina che lo ha creato (nessun'altra
+ * origine ha un riferimento a esso, e `event.origin` è sempre vuoto): un controllo
+ * d'origine non si applica. Si accettano comunque solo i metodi propri di `api`, così
+ * nomi ereditati come "constructor", "toString" o "__proto__" vengono rifiutati.
+ */
+export function parseRequest(data: unknown, api: object): Request | null {
+  if (typeof data !== "object" || data === null) {
+    return null;
+  }
+  const { id, method, args } = data as Record<string, unknown>;
+  if (
+    typeof id !== "number" ||
+    !Number.isSafeInteger(id) ||
+    typeof method !== "string" ||
+    !Object.hasOwn(api, method) ||
+    !Array.isArray(args)
+  ) {
+    return null;
+  }
+  return { id, method: method as Method, args };
+}

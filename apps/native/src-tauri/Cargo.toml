@@ -40,7 +40,7 @@ windows = { version = "0.62.2", features = ["Foundation", "Security_Credentials"
 [target.'cfg(target_os = "linux")'.dependencies]
 secret-service = { version = "5.2.0", default-features = false, features = ["rt-tokio-crypto-rust"] }
 # Cattura dello schermo tramite il portale XDG (Wayland e X11).
-ashpd = { version = "0.13.13", default-features = false, features = ["tokio", "screenshot"] }
+ashpd = { version = "0.14.0", default-features = false, features = ["tokio", "screenshot"] }
 png = "0.18.1"
 url = "2.5.8"
 

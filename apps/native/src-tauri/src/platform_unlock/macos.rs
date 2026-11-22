@@ -3,6 +3,9 @@
 //! Il gate lo applica Security.framework: ogni lettura mostra Touch ID o chiede la
 //! password del Mac. La voce resta nel portachiavi di login, senza sincronizzazione.
 
+// Stesse firme `async` delle altre piattaforme.
+#![allow(clippy::unused_async)]
+
 use authenticator_session::format_id;
 use security::error::status;
 use security::{
@@ -22,7 +25,7 @@ fn text(e: impl core::fmt::Display) -> String {
 }
 
 fn keychain_error(e: SecurityError) -> String {
-    match e.code().map(|code| code as i32) {
+    match e.code() {
         Some(code) if code == status::USER_CANCELED => "Autenticazione annullata.".into(),
         Some(code) if code == status::AUTH_FAILED => "Autenticazione non riuscita.".into(),
         Some(code) if code == status::MISSING_ENTITLEMENT => {
